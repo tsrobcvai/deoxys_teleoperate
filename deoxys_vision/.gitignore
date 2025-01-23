@@ -1,0 +1,6 @@
+*.pyc
+*~
+.DS_Store
+rec_exp*
+tag_exp*
+build/*
