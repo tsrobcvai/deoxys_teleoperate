@@ -47,7 +47,6 @@ python deoxys_vision/scripts/deoxys_camera_node.py --camera-ref webcam_2 --use-r
 python deoxys_vision/scripts/deoxys_camera_node.py --camera-ref rs_1 --use-rgb --use-depth --visualization --img-h 480 --img-w 640 --fps 30
 ```
 ### 4.2 Start collecting
-* Randomize rebar pose
 ```
 export PYTHONPATH=$PYTHONPATH:./deoxys_control/deoxys
 python rebar_scripts/deoxys_data_collection_quest2_abs.py
