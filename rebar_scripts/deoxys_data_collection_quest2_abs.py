@@ -310,6 +310,8 @@ class DeoxysDataCollection():
             #     break
 
             # action is axis angle
+            import pdb; pdb.set_trace()
+            
             self.robot_interface.control(
                 controller_type=self.controller_type,
                 action=action,
