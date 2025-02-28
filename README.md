@@ -18,7 +18,7 @@ cd ../../
 cd deoxys_vision
 pip install -e .
 ```
-## 2. Mata quest 2
+## 2. Meta quest 2
 ### Installation
 Headset should be plugged into PC, and the permissions prompt "USB debugging" should be accepted in the system of headset.
 Also, the controller has to be in view of the headset cameras. It detects the pose of the handle via infrared stickers on the handle.
@@ -29,10 +29,8 @@ Teleoperation works by applying the changes to the oculus handle’s pose to the
 * Move: **Move controller**
 * Grasp: **Right trigger**
 * Over: **A**
-
 ## 3. Config setting
 Please modify ["real_robot_observation_cfg.yml"](rebar_configs/real_robot_observation_cfg.yml)
-
 ## 4. Collecting demos
 
 ### 4.1 Reset robot pose if need
@@ -52,8 +50,7 @@ python deoxys_vision/scripts/deoxys_camera_node.py --camera-ref rs_1 --use-rgb -
 export PYTHONPATH=$PYTHONPATH:./deoxys_control/deoxys
 python rebar_scripts/deoxys_data_collection_quest2_abs.py
 ```
-
-
+Note: After pressing "A", we will be prompted to choose if save the demo; Then, we have to manully close the process since it won't shut down automatically (a bug need to be fixed)
 
 # 
 Our repo was built on: 

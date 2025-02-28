@@ -138,8 +138,7 @@ def main():
     camera_interface.start()
     print("Starting")
     t = time.time()
-    # save_dir = f"/media/autostruct-1/T7/demos_collected/images/{camera_info.camera_type}_{camera2redis_pub_interface.camera_name}_{t}"
-    save_dir = f"/home/autostruct-1/workspace/rebar_policy_git/demos_collected/images/{camera_info.camera_type}_{camera2redis_pub_interface.camera_name}_{t}"
+    save_dir = f"demos_collected/images/{camera_info.camera_type}_{camera2redis_pub_interface.camera_name}_{t}"
     file_ext = "jpg"
     camera_num = 0
     os.makedirs(save_dir)
