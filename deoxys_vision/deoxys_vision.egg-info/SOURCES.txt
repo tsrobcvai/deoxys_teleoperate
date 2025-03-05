@@ -8,8 +8,10 @@ deoxys_vision.egg-info/eager_resources.txt
 deoxys_vision.egg-info/top_level.txt
 deoxys_vision/camera/__init__.py
 deoxys_vision/camera/base_interface.py
+deoxys_vision/camera/gopro_interface.py
 deoxys_vision/camera/k4a_interface.py
 deoxys_vision/camera/rs_interface.py
+deoxys_vision/camera/webcam_interface.py
 deoxys_vision/experimental/__init__.py
 deoxys_vision/experimental/calibration.py
 deoxys_vision/k4a/__init__.py

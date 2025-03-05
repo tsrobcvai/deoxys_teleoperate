@@ -44,6 +44,11 @@ python deoxys_vision/scripts/deoxys_camera_node.py --camera-ref gopro_0 --use-rg
 python deoxys_vision/scripts/deoxys_camera_node.py --camera-ref webcam_2 --use-rgb --visualization --img-h 1080 --img-w 1920 --fps 30 --camera-address '/dev/video2'
 python deoxys_vision/scripts/deoxys_camera_node.py --camera-ref rs_1 --use-rgb --use-depth --visualization --img-h 480 --img-w 640 --fps 30
 ```
+if you want to check the cameras plugged
+```
+v4l2-ctl --list-devices
+```
+
 ### 4.2 Start collecting
 ```
 export PYTHONPATH=$PYTHONPATH:./deoxys_control/deoxys
