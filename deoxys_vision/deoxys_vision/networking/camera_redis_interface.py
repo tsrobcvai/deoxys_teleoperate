@@ -13,7 +13,7 @@ class CameraRedisPubInterface:
 
     def __init__(self, 
                  camera_info,
-                 redis_host="172.16.0.1", 
+                 redis_host="localhost", # 172.16.0.1
                  redis_port=6379, 
                  custom_camera_name=None):
         self.redis_host = redis_host
@@ -76,7 +76,7 @@ class CameraRedisSubInterface:
     def __init__(
         self,
         camera_info,
-        redis_host="10.50.193.156",
+        redis_host= "localhost",# "10.50.193.156",
         redis_port=6379,
         # camera_id=0,
         # camera_type="rs",  # "rs" or "k4a
