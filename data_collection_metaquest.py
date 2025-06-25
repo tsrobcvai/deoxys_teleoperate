@@ -7,7 +7,7 @@ from scipy.spatial.transform import Rotation
 
 def input2action(device):
     state = device.get_controller_state()
-
+   
     assert state, "please check your headset if works on debug mode correctly"
 
     target_pose_mat, grasp, reset, _, stop_record = state["target_pose"], state["grasp"], state["reset"], state["action_hot"], state["stop_record"]
@@ -23,8 +23,8 @@ def input2action(device):
 
     action = None
     if not reset:
-        grasp = 1 if grasp else -1
-        action = action_pos.tolist() + action_euler_angle.tolist() + [grasp]
+        # grasp = 1 if grasp else -1
+        action = action_pos.tolist() + action_euler_angle.tolist() # + [grasp]
 
     return action, grasp, target_pose_mat, stop_record
 
@@ -46,7 +46,6 @@ class DeoxysDataCollection():
 
     def collect_data(self):
 
-
         sys.path.append(os.path.join(os.path.dirname(__file__), '../../..'))
         from xarm.wrapper import XArmAPI
 
@@ -54,60 +53,61 @@ class DeoxysDataCollection():
         """
         Just for test example
         """
-        if len(sys.argv) >= 2:
-            ip = sys.argv[1]
-        else:
-            try:
-                from configparser import ConfigParser
-                parser = ConfigParser()
-                parser.read('../robot.conf')
-                ip = parser.get('xArm', 'ip')
-            except:
-                ip = input('Please input the xArm ip address:')
-                if not ip:
-                    print('input error, exit')
-                    sys.exit(1)
+        # if len(sys.argv) >= 2:
+        #     ip = sys.argv[1]
+        # else:
+        #     try:
+        #         from configparser import ConfigParser
+        #         parser = ConfigParser()
+        #         parser.read('../robot.conf')
+        #         ip = parser.get('xArm', 'ip')
+        #     except:
+        #         ip = input('Please input the xArm ip address:')
+        #         if not ip:
+        #             print('input error, exit')
+        #             sys.exit(1)
         ########################################################
-
+        ip = "192.168.1.193"
         arm = XArmAPI(ip)
         arm.motion_enable(enable=True)
         arm.set_mode(0)
         arm.set_state(state=0)
 
-        arm.move_gohome(wait=True)
+        # arm.move_gohome(wait=True)
         arm.set_position(*[200, 0, 200, 180, 0, 0], wait=True) # hardcoded initial pose
         arm.set_mode(1)
         arm.set_state(0)
         time.sleep(0.5)
         device = Meta_quest2()
-
         # read initial pose
-        arm_init_pose = np.asarray(arm.get_position())
-        arm_init_pose_ = Rotation.from_euler('xyz', [arm_init_pose[3], arm_init_pose[4], arm_init_pose[5]])
+        arm_init_pose = np.asarray(arm.get_position()[1])
+
+        arm_init_pose_ = Rotation.from_euler('xyz', [arm_init_pose[3], arm_init_pose[4], arm_init_pose[5]], degrees=True)
         arm_init_pose_mat = np.eye(4)
         arm_init_pose_mat[:3, :3] = arm_init_pose_.as_matrix()
         arm_init_pose_mat[:3,  3] = arm_init_pose[:3]
-
+        # import pdb;pdb.set_trace()
         device.start_control(arm_init_pose_mat)
         time.sleep(0.5)
-
+        i = 0
         while i < self.max_steps:
             i += 1
             start_time = time.time_ns()
             action, grasp, target_pose_mat, stop_record = input2action(device=device)
-            print('set_servo_cartesian, ret={}'.format(ret))
-
             if action is None and start:
                 device.stop_control()
                 break
 
             start = True
-            ret = arm.set_servo_cartesian(action, speed=100, mvacc=2000) # action is absolute pose [x, y, z, roll, pitch, yaw]
+            # import pdb;pdb.set_trace()
 
-            # control frequency 10 HZ
-            end_time = time.time_ns()
-            if end_time - start_time > 0.1:
-                time.sleep(0.1 - end_time + start_time)
+            ret = arm.set_servo_cartesian(action, speed=20, mvacc=200) # action is absolute pose [x, y, z, roll, pitch, yaw]
+            print(action)
+            # control frequency 50 HZ
+            elapsed_time = (time.time_ns() - start_time) / 1e9
+            if elapsed_time < 0.02: # 50Hz
+                time.sleep(0.02 - elapsed_time)
+            # print(i)
 
         arm.disconnect()
         

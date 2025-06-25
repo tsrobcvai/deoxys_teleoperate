@@ -1,5 +1,5 @@
-from deoxys.utils.io_devices.oculus_reader.oculus_reader.FPS_counter import FPSCounter
-from deoxys.utils.io_devices.oculus_reader.oculus_reader.buttons_parser import parse_buttons
+from io_devices.oculus_reader.oculus_reader.FPS_counter import FPSCounter
+from io_devices.oculus_reader.oculus_reader.buttons_parser import parse_buttons
 # from oculus_reader.oculus_reader.FPS_counter import FPSCounter
 # from oculus_reader.oculus_reader.buttons_parser import parse_buttons
 

@@ -1,0 +1,3 @@
+ppadb
+scipy
+pip install pyserial>=3.4

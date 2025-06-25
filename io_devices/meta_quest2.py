@@ -1,9 +1,7 @@
-
 import time
 import threading
 import numpy as np
-from deoxys.utils.io_devices.oculus_reader.oculus_reader.reader import OculusReader
-
+from io_devices.oculus_reader.oculus_reader.reader import OculusReader
 
 class Meta_quest2:
     def __init__(
@@ -57,7 +55,7 @@ class Meta_quest2:
         self.thread.join()  # Wait for the thread to finish
         # print("Thread has fully exited.")
 
-    def _update_internal_state(self, hz=50):
+    def _update_internal_state(self, hz=100):
 
         last_read_time = time.time()
 
@@ -69,6 +67,7 @@ class Meta_quest2:
 
                 # Read Controller
                 poses, buttons = self.oculus_reader.get_transformations_and_buttons()
+                # print(poses)
 
                 if poses == {}:
                     continue
@@ -85,8 +84,14 @@ class Meta_quest2:
                 # print("1")
 
     def get_controller_state(self):
-        target_pos = self._state["last_pose"][:3, 3] - self._state["init_pose"][:3, 3] + self._robot_init_ee[:3, 3]
+        # meta quest default unit m, xarm: mm
+        print(self._state["last_pose"][:3, 3])
+
+
+        target_pos = 1000 * (self._state["last_pose"][:3, 3] - self._state["init_pose"][:3, 3]) + self._robot_init_ee[:3, 3]
         target_rot = self._state["last_pose"][:3, :3] @ self._state["init_pose"][:3, :3].T @ self._robot_init_ee[:3, :3]
+
+        # import pdb;pdb.set_trace()
         # A = self._state["init_pose"][:3, :3]
         # print(f"meta: {A}")
         # print(f"target_rot: {target_rot}")
@@ -96,7 +101,7 @@ class Meta_quest2:
 
         if self._stop_record == False:
             self._stop_record = self._state["buttons"]["B"]
-
+        # print(target_pose)
         return {
             "target_pose": target_pose,
             "grasp": self._state["buttons"]["RTr"],
