@@ -1,4 +1,0 @@
-redis
-pytransform3d
-pupil_apriltags
-

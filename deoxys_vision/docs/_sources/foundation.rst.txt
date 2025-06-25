@@ -1,4 +1,0 @@
-Foundation for robot vision
-===========================
-
-TODO
