@@ -31,15 +31,27 @@ def get_delta_pose(current_pose, target_abs_pose, grasp):
     delta_action = delta_pos.tolist() + delta_euler.tolist() + [grasp_val]
     return delta_action
 
+# lite 6 safety control
+# def safety_control(target_action):
+#     # unit mm
+#     if not 0 <= target_action[0] <= 800:   # x axis
+#         return False
+#     if not -300 <= target_action[1] <= 300:  # y axis
+#         return False
+#     if not 0 <= target_action[2]<= 800:      # z axis
+#         return False
+#     return True
+
+# XARM 6 safety control
 def safety_control(target_action):
     # unit mm
-    if not 0 <= target_action[0] <= 800:   # x axis
+    if not -1600 <= target_action[0] <= 1600:   # x axis
         return False
-    if not -300 <= target_action[1] <= 300:  # y axis
+    if not -700 <= target_action[1] <= 700:   # y axis  
         return False
-    if not 0 <= target_action[2]<= 800:      # z axis
+    if not -500 <= target_action[2] <= 1600:   # z axis
         return False
-    return True
+    return True 
 
 def save_images_for_camera(camera_id, img_info, img_bgr):
     """Function to save images for a specific camera in a separate process."""
@@ -173,7 +185,7 @@ class UfactoryDataCollection():
         #             sys.exit(1)
         ########################################################
       
-        ip = "192.168.1.193"
+        ip = "192.168.1.235"
         arm = XArmAPI(ip)
         arm.motion_enable(enable=True)
         arm.set_mode(0)
@@ -198,18 +210,19 @@ class UfactoryDataCollection():
         time.sleep(0.5)
 
         # intial gripper
-        # ret = arm.robotiq_reset()
-        # code, ret = arm.robotiq_set_activate()
-        # if code != 0:
-        #     print('Robotiq activate failed, exit.')
-        #     arm.disconnect()
-        #     return
+        ret = arm.robotiq_reset()
+        code, ret = arm.robotiq_set_activate()
+        if code != 0:
+            print('Robotiq activate failed, exit.')
+            arm.disconnect()
+            return
         
         data = {"action": [],"ee_states": [],
             "target_pose_mat": [],"grasp": [],}
 
         i = 0
         start = False
+        last_grasp_state = None 
         while i < self.max_steps:
             i += 1
             start_time = time.time_ns()
@@ -231,17 +244,19 @@ class UfactoryDataCollection():
             print(action)
 
             # robotiq gripper control
-            # if grasp:
-            #     code, ret = arm.robotiq_close(wait=True)
-            #     print('robotiq_close, code={}, ret={}'.format(code, ret))
-            # else:
-            #     code, ret = arm.robotiq_open(wait=True)
-            #     print('robotiq_open, code={}, ret={}'.format(code, ret))
-
-            # if code == APIState.END_EFFECTOR_HAS_FAULT:
-            #     print('robotiq fault code: {}'.format(arm.robotiq_status['gFLT']))
-            #     device.stop_control()
-            #     break
+            if last_grasp_state != grasp:
+                if grasp:
+                    code, ret = arm.robotiq_close(wait=False)
+                    print('robotiq_close, code={}, ret={}'.format(code, ret))
+                else:
+                    code, ret = arm.robotiq_open(wait=False)
+                    print('robotiq_open, code={}, ret={}'.format(code, ret))
+                last_grasp_state = grasp
+                
+                if code == APIState.END_EFFECTOR_HAS_FAULT:
+                    print('robotiq fault code: {}'.format(arm.robotiq_status['gFLT']))
+                    device.stop_control()
+                    break
 
             # collect ee state
             ee_state = arm.get_position()[1]

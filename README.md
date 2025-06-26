@@ -1,7 +1,7 @@
 ## 1. Installation
 ```
-conda create -n rebarpolicy python=3.9
-conda activate rebarpolicy
+conda create -n ufact python=3.9
+conda activate ufact
 # install ufactory API, Install from source code
 git clone https://github.com/xArm-Developer/xArm-Python-SDK.git
 cd xArm-Python-SDK
@@ -37,7 +37,7 @@ Teleoperation works by applying the changes to the oculus handle’s pose to the
 
 ## 4. Collecting demos
 ```
-python data_collection_metaquest.py
+python scripts/data_collection_metaquest.py
 ```
 
 # 
