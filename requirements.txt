@@ -1,3 +1,4 @@
-ppadb
 scipy
-pip install pyserial>=3.4
+pyserial>=3.4
+opencv-python>=4.7.0
+matplotlib

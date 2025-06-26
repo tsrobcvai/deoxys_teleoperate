@@ -53,32 +53,32 @@ def animate(i, times, lines_state, lines_action, state_points, action_points, ax
 
     return lines_state + lines_action
 
-def animate_7(i, times, lines_state, lines_action, state_points, action_points, axes):
-    if len(times) == 0:
-        return  # Wait until the robot process fills in the data
-    # assert len(times) == len(state_points[0]) == len(action_points[0])
-    # To solve the dismatch
+# def animate_(i, times, lines_state, lines_action, state_points, action_points, axes):
+#     if len(times) == 0:
+#         return  # Wait until the robot process fills in the data
+#     # assert len(times) == len(state_points[0]) == len(action_points[0])
+#     # To solve the dismatch
 
-    # times_copy = times.deepcopy()
+#     # times_copy = times.deepcopy()
 
-    # Update each subplot for robot state and action
-    for j in range(7):
-        # print(f'interations: {j}')
-        # print(f'len(times): {len(times)}')
-        # print(f'len(state_points[j]): {len(state_points[j])}')
-        # print(f'len(action_points[j]): {len(action_points[j])}')
-        # print(f'clip_len: {min_len}')
-        min_len = min(len(times), len(state_points[j]), len(action_points[j]))
-        # lines_state[j].set_data(times, state_points[j])
-        # lines_action[j].set_data(times, action_points[j])
-        lines_state[j].set_data(times[:min_len], state_points[j][:min_len])
-        lines_action[j].set_data(times[:min_len], action_points[j][:min_len])
+#     # Update each subplot for robot state and action
+#     for j in range(7):
+#         # print(f'interations: {j}')
+#         # print(f'len(times): {len(times)}')
+#         # print(f'len(state_points[j]): {len(state_points[j])}')
+#         # print(f'len(action_points[j]): {len(action_points[j])}')
+#         # print(f'clip_len: {min_len}')
+#         min_len = min(len(times), len(state_points[j]), len(action_points[j]))
+#         # lines_state[j].set_data(times, state_points[j])
+#         # lines_action[j].set_data(times, action_points[j])
+#         lines_state[j].set_data(times[:min_len], state_points[j][:min_len])
+#         lines_action[j].set_data(times[:min_len], action_points[j][:min_len])
 
-    for ax in axes:
-        ax.relim()  # Recalculate limits
-        ax.autoscale_view()  # Update view to include new data
+#     for ax in axes:
+#         ax.relim()  # Recalculate limits
+#         ax.autoscale_view()  # Update view to include new data
 
-    return lines_state + lines_action
+#     return lines_state + lines_action
 
 # Function to save the figure when 'q' is pressed
 def save_figure(event, fig, save_path):
@@ -124,47 +124,47 @@ def monitor(times, state_points, action_points, save_path):
     # Start the Tkinter main loop
     root.mainloop()
 
-def torque_monitor(times, tau_meansured_points, tau_active_points, save_path):
-    # Create the main Tkinter window
-    root = tk.Tk()
-    root.title("Tau_meansured and Tau_actived Monitor")
+# def torque_monitor(times, tau_meansured_points, tau_active_points, save_path):
+#     # Create the main Tkinter window
+#     root = tk.Tk()
+#     root.title("Tau_meansured and Tau_actived Monitor")
 
-    # Create a Matplotlib figure with 7 subplots for the 7 robot state/action values
-    fig, axes = plt.subplots(7, 1, figsize=(8, 10), sharex=True)
-    fig.tight_layout(pad=3.0)
+#     # Create a Matplotlib figure with 7 subplots for the 7 robot state/action values
+#     fig, axes = plt.subplots(7, 1, figsize=(8, 10), sharex=True)
+#     fig.tight_layout(pad=3.0)
 
-    lines_state = []
-    lines_action = []
-    for i in range(7):
-        line_state, = axes[i].plot([], [], 'r-', label=f'Tau_meansured {i + 1}')
-        line_action, = axes[i].plot([], [], 'b--', label=f'Tau_actived {i + 1}')
-        axes[i].set_title(f'Joint {i + 1}')
-        axes[i].set_ylabel('Value')
+#     lines_state = []
+#     lines_action = []
+#     for i in range(7):
+#         line_state, = axes[i].plot([], [], 'r-', label=f'Tau_meansured {i + 1}')
+#         line_action, = axes[i].plot([], [], 'b--', label=f'Tau_actived {i + 1}')
+#         axes[i].set_title(f'Joint {i + 1}')
+#         axes[i].set_ylabel('Value')
 
-        # Add horizontal dashed lines at specific y-values
-        # for y in [-20, -15, -10, -5, 0, 5, 10, 15, 20]:
-        #     axes[i].axhline(y=y, color='gray', linestyle='--', linewidth=0.5)
+#         # Add horizontal dashed lines at specific y-values
+#         # for y in [-20, -15, -10, -5, 0, 5, 10, 15, 20]:
+#         #     axes[i].axhline(y=y, color='gray', linestyle='--', linewidth=0.5)
 
-        axes[i].legend(loc="upper left")
-        lines_state.append(line_state)
-        lines_action.append(line_action)
+#         axes[i].legend(loc="upper left")
+#         lines_state.append(line_state)
+#         lines_action.append(line_action)
 
-    axes[-1].set_xlabel('Time')
+#     axes[-1].set_xlabel('Time')
 
-    # Link Matplotlib figure to Tkinter window
-    canvas = FigureCanvasTkAgg(fig, master=root)
-    canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
+#     # Link Matplotlib figure to Tkinter window
+#     canvas = FigureCanvasTkAgg(fig, master=root)
+#     canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
 
-    # Use Matplotlib's animation module to update the plot in real-time
-    ani = animation.FuncAnimation(fig, animate_7,
-                                  fargs=(times, lines_state, lines_action,
-                                         tau_meansured_points, tau_active_points, axes), interval=50)
+#     # Use Matplotlib's animation module to update the plot in real-time
+#     ani = animation.FuncAnimation(fig, animate_7,
+#                                   fargs=(times, lines_state, lines_action,
+#                                          tau_meansured_points, tau_active_points, axes), interval=50)
 
-    # Bind the 'q' key to the save function
-    root.bind("<Key>", lambda event: save_figure(event, fig, save_path))
+#     # Bind the 'q' key to the save function
+#     root.bind("<Key>", lambda event: save_figure(event, fig, save_path))
 
-    # Start the Tkinter main loop
-    root.mainloop()
+#     # Start the Tkinter main loop
+#     root.mainloop()
 
 if __name__ == "__main__":
     # Define the save path for the figure

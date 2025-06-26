@@ -49,7 +49,7 @@ class OculusReader:
     def run(self):
         self.running = True
         self.device.shell('am start -n "com.rail.oculus.teleop/com.rail.oculus.teleop.MainActivity" -a android.intent.action.MAIN -c android.intent.category.LAUNCHER')
-        self.thread = threading.Thread(target=self.device.shell, args=("logcat -T 0", self.read_logcat_by_line))
+        self.thread = threading.Thread(target=self.device.shell, args=("logcat -T 0", self.read_logcat_by_line), daemon=True)
         self.thread.start()
 
     def stop(self):
