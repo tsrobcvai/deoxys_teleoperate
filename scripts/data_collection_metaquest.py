@@ -11,6 +11,12 @@ from scipy.spatial.transform import Rotation
 from pathlib import Path
 import multiprocessing
 from xarm.x3.code import APIState
+import argparse
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--robot', type=str, default='xarm6')
+parser.add_argument('--ip', type=str, required=True)
+args = parser.parse_args()
 
 
 def get_delta_pose(current_pose, target_abs_pose, grasp):
@@ -31,27 +37,23 @@ def get_delta_pose(current_pose, target_abs_pose, grasp):
     delta_action = delta_pos.tolist() + delta_euler.tolist() + [grasp_val]
     return delta_action
 
-# lite 6 safety control
-# def safety_control(target_action):
-#     # unit mm
-#     if not 0 <= target_action[0] <= 800:   # x axis
-#         return False
-#     if not -300 <= target_action[1] <= 300:  # y axis
-#         return False
-#     if not 0 <= target_action[2]<= 800:      # z axis
-#         return False
-#     return True
-
-# XARM 6 safety control
-def safety_control(target_action):
+def safety_control(target_action, robot_type="xarm6"):
     # unit mm
-    if not -1600 <= target_action[0] <= 1600:   # x axis
-        return False
-    if not -700 <= target_action[1] <= 700:   # y axis  
-        return False
-    if not -500 <= target_action[2] <= 1600:   # z axis
-        return False
-    return True 
+    if robot_type == "lite6":
+        if not 0 <= target_action[0] <= 800:   # x axis
+            return False
+        if not -300 <= target_action[1] <= 300:  # y axis
+            return False
+        if not 0 <= target_action[2] <= 800:      # z axis
+            return False
+    else:  # xarm6
+        if not -1600 <= target_action[0] <= 1600:   # x axis
+            return False
+        if not -700 <= target_action[1] <= 700:   # y axis  
+            return False
+        if not -500 <= target_action[2] <= 1600:   # z axis
+            return False
+    return True
 
 def save_images_for_camera(camera_id, img_info, img_bgr):
     """Function to save images for a specific camera in a separate process."""
@@ -93,11 +95,13 @@ class UfactoryDataCollection():
                 #  save2memory_first=False,
                 monitor=False,
                 #  torque_monitor=False
+                robot_type="xarm6" 
                  ):
         self.folder = Path(folder)
         self.folder.mkdir(parents=True, exist_ok=True)
         self.max_steps = max_steps
         self.monitor = monitor
+        self.robot_type = robot_type 
         
         # logging config
         logging.basicConfig(level=logging.INFO)
@@ -147,7 +151,7 @@ class UfactoryDataCollection():
         # print(f"action: {target_action}")
         return target_action, rot_mat2
     
-    def collect_data(self):
+    def collect_data(self,ip):
         experiment_id = 0
         for path in self.folder.glob("run*"):
             if not path.is_dir():
@@ -185,7 +189,10 @@ class UfactoryDataCollection():
         #             sys.exit(1)
         ########################################################
       
-        ip = "192.168.1.235"
+        if self.robot_type == "lite6":
+            ip = "192.168.1.193"   # lite6 ip
+        else:
+            ip = "192.168.1.235" # xarm6 ip
         arm = XArmAPI(ip)
         arm.motion_enable(enable=True)
         arm.set_mode(0)
@@ -232,7 +239,6 @@ class UfactoryDataCollection():
                 break
             start = True
 
-            # import pdb;pdb.set_trace()
             # Safety control 
             if not safety_control(action):
                 device.stop_control()
@@ -243,20 +249,31 @@ class UfactoryDataCollection():
             ret = arm.set_servo_cartesian(action, speed=20, mvacc=200) # action is absolute pose [x, y, z, roll, pitch, yaw]
             print(action)
 
-            # robotiq gripper control
-            if last_grasp_state != grasp:
-                if grasp:
-                    code, ret = arm.robotiq_close(wait=False)
-                    print('robotiq_close, code={}, ret={}'.format(code, ret))
-                else:
-                    code, ret = arm.robotiq_open(wait=False)
-                    print('robotiq_open, code={}, ret={}'.format(code, ret))
-                last_grasp_state = grasp
-                
-                if code == APIState.END_EFFECTOR_HAS_FAULT:
-                    print('robotiq fault code: {}'.format(arm.robotiq_status['gFLT']))
-                    device.stop_control()
-                    break
+            # robotiq gripper control，only for xarm6 
+            if self.robot_type == "xarm6":
+                if last_grasp_state != grasp:
+                    if grasp:
+                        code, ret = arm.robotiq_close(wait=False)
+                        print('robotiq_close, code={}, ret={}'.format(code, ret))
+                    else:
+                        code, ret = arm.robotiq_open(wait=False)
+                        print('robotiq_open, code={}, ret={}'.format(code, ret))
+                    last_grasp_state = grasp
+                    
+                    if code == APIState.END_EFFECTOR_HAS_FAULT:
+                        print('robotiq fault code: {}'.format(arm.robotiq_status['gFLT']))
+                        device.stop_control()
+                        break
+            elif self.robot_type == "lite6":
+                # suction gripper only for lite6, suction=close，release=open
+                if last_grasp_state != grasp:
+                    if grasp:
+                        arm.open_lite6_gripper()   # 吸合
+                        print('suction: open')
+                    else:
+                        arm.close_lite6_gripper()  # 释放
+                        print('suction: close')
+                    last_grasp_state = grasp
 
             # collect ee state
             ee_state = arm.get_position()[1]
@@ -333,8 +350,8 @@ class UfactoryDataCollection():
         return True
 
 def main():
-    data_collection = UfactoryDataCollection(max_steps=10000)
-    data_collection.collect_data()
+    data_collection = UfactoryDataCollection(max_steps=10000, robot_type=args.robot)
+    data_collection.collect_data(ip=args.ip)
     data_collection.save(keep=True, keyboard_ask=True)
 
 if __name__ == "__main__":
