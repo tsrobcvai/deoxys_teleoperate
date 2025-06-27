@@ -89,7 +89,7 @@ class UfactoryDataCollection():
                 #  interface_cfg="rebar_configs/franka_interface.yml",
                 #  controller_cfg="rebar_configs/osc-pose-controller.yml",
                 #  controller_type="OSC_POSE",
-                max_steps=2000,
+                max_steps=10000,
                 #  save2memory_first=False,
                 monitor=False,
                 #  torque_monitor=False
@@ -192,7 +192,7 @@ class UfactoryDataCollection():
         arm.set_state(state=0)
 
         # arm.move_gohome(wait=True)
-        arm.set_position(*[200, 0, 200, 180, 0, 0], wait=True) # hardcoded initial pose
+        # arm.set_position(*[200, 0, 200, 180, 0, 0], wait=True) # hardcoded initial pose
         arm.set_mode(1)
         arm.set_state(0)
         time.sleep(0.5)
@@ -209,13 +209,13 @@ class UfactoryDataCollection():
         device.start_control(arm_init_pose_mat)
         time.sleep(0.5)
 
-        # intial gripper
-        ret = arm.robotiq_reset()
-        code, ret = arm.robotiq_set_activate()
-        if code != 0:
-            print('Robotiq activate failed, exit.')
-            arm.disconnect()
-            return
+        # # intial gripper
+        # ret = arm.robotiq_reset()
+        # code, ret = arm.robotiq_set_activate()
+        # if code != 0:
+        #     print('Robotiq activate failed, exit.')
+        #     arm.disconnect()
+        #     return
         
         data = {"action": [],"ee_states": [],
             "target_pose_mat": [],"grasp": [],}
@@ -333,7 +333,7 @@ class UfactoryDataCollection():
         return True
 
 def main():
-    data_collection = UfactoryDataCollection(max_steps=2000)
+    data_collection = UfactoryDataCollection(max_steps=10000)
     data_collection.collect_data()
     data_collection.save(keep=True, keyboard_ask=True)
 
