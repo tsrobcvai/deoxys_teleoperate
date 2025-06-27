@@ -47,12 +47,3 @@ Deoxys vision,
 GRoot
 
 ### debug
-
-Traceback (most recent call last):
-  File "/home/zekaijin/ufactory/deoxys_teleoperate/data_collection_metaquest.py", line 5, in <module>
-    from io_devices import Meta_quest2
-  File "/home/zekaijin/ufactory/deoxys_teleoperate/io_devices/__init__.py", line 2, in <module>
-    from .meta_quest2 import Meta_quest2
-  File "/home/zekaijin/ufactory/deoxys_teleoperate/io_devices/meta_quest2.py", line 5, in <module>
-    from oculus_reader.oculus_reader.reader import OculusReader
-ModuleNotFoundError: No module named 'oculus_reader

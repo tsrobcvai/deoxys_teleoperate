@@ -85,7 +85,7 @@ class Meta_quest2:
 
     def get_controller_state(self):
         # meta quest default unit m, xarm: mm
-        print(self._state["last_pose"][:3, 3])
+        # print(self._state["last_pose"][:3, 3])
         target_pos = 1000 * (self._state["last_pose"][:3, 3] - self._state["init_pose"][:3, 3]) + self._robot_init_ee[:3, 3]
         target_rot = self._state["last_pose"][:3, :3] @ self._state["init_pose"][:3, :3].T @ self._robot_init_ee[:3, :3]
 
