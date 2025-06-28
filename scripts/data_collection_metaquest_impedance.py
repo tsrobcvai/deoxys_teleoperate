@@ -11,6 +11,9 @@ from scipy.spatial.transform import Rotation
 from pathlib import Path
 import multiprocessing
 from xarm.x3.code import APIState
+import matplotlib
+matplotlib.use("Agg")          # 后端设为无界面，防止阻塞
+import matplotlib.pyplot as plt
 
 
 def get_delta_pose(current_pose, target_abs_pose, grasp):
@@ -80,7 +83,7 @@ def input2action(device):
         action = action_pos.tolist() + action_euler_angle.tolist() # + [grasp]
 
     return action, grasp, target_pose_mat, stop_record
-
+from datetime import datetime
 
 class UfactoryDataCollection():
     def __init__(self,
@@ -98,6 +101,10 @@ class UfactoryDataCollection():
         self.folder.mkdir(parents=True, exist_ok=True)
         self.max_steps = max_steps
         self.monitor = monitor
+
+        self.ft_history = []           # 用来记录每一步的 ft_data[1]（长度 6）
+        self.ft_png_path = self.folder / "ft_history.png"  # 输出文件
+
         
         # logging config
         logging.basicConfig(level=logging.INFO)
@@ -110,43 +117,34 @@ class UfactoryDataCollection():
             self.state_points = manager.list([manager.list() for _ in range(6)])  
             self.action_points = manager.list([manager.list() for _ in range(6)])
             self.monitor_save_path = str(self.folder / "robot_state_action_figure.png")
+    def _save_ft_plot(self):
+        """
+        将 ft_history 绘制成 256×256 PNG（覆盖写入）。
+        """
+        if not self.ft_history:       # 避免空列表
+            return
+        arr = np.asarray(self.ft_history)        # shape=(T,6)
+        t = np.arange(arr.shape[0])
 
-    def monitor_state_process(self, mat):
-        A = np.array([[1.0, 0.0, 0.0, 0.0],
-                      [0.0, -1.0, 0.0, 0.0],
-                      [0.0, 0.0, -1.0, 0.0],
-                      [0.0, 0.0, 0.0, 1.0]])
-        ee_data_new = np.zeros(6)
-        mat = mat.reshape(4, 4, order='F')
-        # To avoid singularity of axis angle representation
+        fig, ax = plt.subplots(figsize=(8, 8), dpi=300) 
+        # labels = ["Fx","Fy","Fz","Tx","Ty","Tz"]
+        # for k in range(6):
+        #     ax.plot(t, arr[:, k], linewidth=0.6, label=labels[k])
+        
+        labels = ["Tx","Ty","Tz"]
+        for k in range(3):
+            ax.plot(t, arr[:, k+3], linewidth=0.6, label=labels[k])
 
-        rot_mat = mat[:3, :3]
-        rot_mat = A[:3, :3] @ rot_mat
-        # print(f"state rot_mat_after_A: {rot_mat}")
-        trans_vec = mat[:3, 3]
-        rot = Rotation.from_matrix(rot_mat)
-        rot_vec = rot.as_rotvec() # axis angle
-        ee_data_new[:3] = trans_vec
-        ee_data_new[3:] = rot_vec
-        # print(f"state: {ee_data_new}")
-        return ee_data_new, rot_mat
+        ax.set_xlabel("Step", fontsize=6)
+        ax.set_ylabel("N  /  N·m", fontsize=6)
+        ax.tick_params(labelsize=6, length=2)
+        ax.legend(fontsize=5, loc="upper right", ncol=2, frameon=False)
+        fig.tight_layout(pad=0.2)
 
-    def monitor_action_process(self, target_action):
-        A = np.array([[1.0, 0.0, 0.0, 0.0],
-                      [0.0, -1.0, 0.0, 0.0],
-                      [0.0, 0.0, -1.0, 0.0],
-                      [0.0, 0.0, 0.0, 1.0]])
-        # print(f"before target_action: {target_action}")
-        rot2 = Rotation.from_rotvec(target_action[3:6])
-        rot_mat2 = rot2.as_matrix()
-        rot_mat2 = A[:3,:3]  @ rot_mat2
-        # print(rot_mat2)
-        rot_new2 = Rotation.from_matrix(rot_mat2)
-        rot_vec_new2 = rot_new2.as_rotvec()
-        target_action[3:6] = rot_vec_new2
-        # print(f"action: {target_action}")
-        return target_action, rot_mat2
-    
+        plt.savefig(self.ft_png_path, dpi=100)   # 覆盖保存
+        plt.close(fig)
+
+
     def collect_data(self):
         experiment_id = 0
         for path in self.folder.glob("run*"):
@@ -224,27 +222,27 @@ class UfactoryDataCollection():
         last_grasp_state = None 
 
         # set tool impedance parameters:
-        K_pos = 300         #  x/y/z linear stiffness coefficient, range: 0 ~ 2000 (N/m)
-        K_ori = 3           #  Rx/Ry/Rz rotational stiffness coefficient, range: 0 ~ 20 (Nm/rad)
+        K_pos = 10         #  x/y/z linear stiffness coefficient, range: 0 ~ 2000 (N/m)
+        K_ori = 0.1          #  Rx/Ry/Rz rotational stiffness coefficient, range: 0 ~ 20 (Nm/rad)
         # Attention: for M and J, smaller value means less effort to drive the arm, but may also be less stable, please be careful. 
-        M = float(0.06)  #  x/y/z equivalent mass; range: 0.02 ~ 1 kg
+        M = float(0.03)  #  x/y/z equivalent mass; range: 0.02 ~ 1 kg
         J = M * 0.01     #  Rx/Ry/Rz equivalent moment of inertia, range: 1e-4 ~ 0.01 (Kg*m^2)
         # c_axis = [0,0,1,0,0,0] # set z axis as compliant axis
-        c_axis = [1,1,1,1,1,1] # set z axis as compliant axis
+        c_axis = [1,1,1,1,1,1]  
         ref_frame = 0         # 0 : base , 1 : tool
         
         # arm.set_impedance_mbk([M, M, M, J, J, J], [K_pos, K_pos, K_pos, K_ori, K_ori, K_ori], [0]*6) # B(damping) is reserved, give zeros
 
         import math
-        def crit_b(m, k, zeta=0.8):
+        def crit_b(m, k, zeta=50):
             return 2 * zeta * math.sqrt(m * k)
         B_xyz = [crit_b(M, K_pos)]*3
         B_rpy = [crit_b(J, K_ori)]*3
         B = B_xyz + B_rpy      
         # import pdb;pdb.set_trace()
+        # B = [6.788225099390856, 6.788225099390856, 6.788225099390856, 
+        # 0.06788225099390857, 0.06788225099390857, 0.06788225099390857]
         arm.set_impedance_mbk([M, M, M, J, J, J], [K_pos, K_pos, K_pos, K_ori, K_ori, K_ori], B)
-
-        
         arm.set_impedance_config(ref_frame, c_axis)
         # enable ft sensor communication
         arm.ft_sensor_enable(1)
@@ -304,25 +302,17 @@ class UfactoryDataCollection():
             data["grasp"].append(grasp)
             # print(f"Step {i}, action: {action}, grasp: {grasp}, stop_record: {stop_record}")
 
-            # monitor data collection
-            if self.monitor:
-                now = time.time()
-                self.times.append(now)
-                # current state of ee（ get_position return [0, [x, y, z, roll, pitch, yaw]])
-                ee_state = arm.get_position()[1]
-                ee_pose_mat = np.eye(4)
-                ee_pose_mat[:3, :3] = Rotation.from_euler('xyz', ee_state[3:], degrees=True).as_matrix()
-                ee_pose_mat[:3, 3] = ee_state[:3]
-                ee_data_new, _ = self.monitor_state_process(ee_pose_mat)
-                for idx in range(6):
-                    self.state_points[idx].append(ee_state[idx])
-                    self.action_points[idx].append(action[idx])
-                    print("action len:", len(data["action"]))
-                    print("ee_states len:", len(data["ee_states"]))
-            if stop_record:
-                device.stop_control()
-                break
+            
+            # J_speed  = arm.last_used_joint_speed()
+            # import pdb;pdb.set_trace()
+            ft_data = arm.get_ft_sensor_data()          # ft_data: (0, [fx, fy, fz, Tx, Ty, Tz])
+            self.ft_history.append(ft_data[1])          # 只要第二项 6 维列表
 
+            # 每 50 步覆盖输出一次 256×256 PNG
+            if len(self.ft_history) % 50 == 0:
+                self._save_ft_plot()     
+
+            # print(f"ft_data: {ft_data}")
             # control frequency 50 HZ
             elapsed_time = (time.time_ns() - start_time) / 1e9
             if elapsed_time < 0.02: # 50Hz
