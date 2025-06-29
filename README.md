@@ -36,9 +36,8 @@ Teleoperation works by applying the changes to the oculus handle’s pose to the
 ...
 
 ## 4. Collecting demos
-```
-python scripts/data_collection_metaquest.py
-```
+For Ufactory XArm6 (default)   `   python scripts/data_collection_metaquest.py    `
+For Ufactory lite6, `   python scripts/data_collection_metaquest.py --robot lite6 --ip 192.168.1.193   `
 
 # 
 Our repo was built on: 
