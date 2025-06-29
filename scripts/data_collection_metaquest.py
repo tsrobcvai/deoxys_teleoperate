@@ -17,12 +17,6 @@ from io_devices.camera_redis_interface import CameraRedisSubInterface
 import yaml
 from utils import YamlConfig
 
-# Argument parser
-parser = argparse.ArgumentParser()
-parser.add_argument('--robot', type=str, default='xarm6')
-parser.add_argument('--ip', type=str, default='192.168.1.235')
-parser.add_argument('--obs-cfg', type=str, default="configs/real_robot_observation_cfg.yml")  
-args = parser.parse_args()
 
 # Function to calculate the delta pose from the current pose to the target absolute pose
 def get_delta_pose(current_pose, target_abs_pose, grasp):
@@ -276,9 +270,6 @@ class UfactoryDataCollection():
         i = 0
         start = False
         last_grasp_state = None 
-
-        time.sleep(2)
-        device = Meta_quest2()
 
         if self.monitor:
             monitor_process = multiprocessing.Process(target=monitor, args=(self.times, self.state_points, self.action_points, self.monitor_save_path))
