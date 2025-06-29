@@ -10,8 +10,8 @@ from io_devices.meta_quest2 import Meta_quest2
 from scipy.spatial.transform import Rotation
 from pathlib import Path
 import multiprocessing
-from xarm.x3.code import APIState
 import argparse
+from xarm.x3.code import APIState
 from scripts.monitor_robot_control import monitor
 from io_devices.camera_redis_interface import CameraRedisSubInterface
 import yaml

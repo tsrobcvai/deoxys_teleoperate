@@ -36,8 +36,11 @@ Teleoperation works by applying the changes to the oculus handle’s pose to the
 ...
 
 ## 4. Collecting demos
-For Ufactory XArm6 (default)   `   python scripts/data_collection_metaquest.py    `
-For Ufactory lite6, `   python scripts/data_collection_metaquest.py --robot lite6 --ip 192.168.1.193   `
+For Ufactory XArm6 (default):
+```python scripts/data_collection_metaquest.py```
+
+For Ufactory lite6:
+```python scripts/data_collection_metaquest.py --robot lite6 --ip 192.168.1.193```
 
 # 
 Our repo was built on: 
@@ -46,12 +49,3 @@ Deoxys vision,
 GRoot
 
 ### debug
-
-Traceback (most recent call last):
-  File "/home/zekaijin/ufactory/deoxys_teleoperate/data_collection_metaquest.py", line 5, in <module>
-    from io_devices import Meta_quest2
-  File "/home/zekaijin/ufactory/deoxys_teleoperate/io_devices/__init__.py", line 2, in <module>
-    from .meta_quest2 import Meta_quest2
-  File "/home/zekaijin/ufactory/deoxys_teleoperate/io_devices/meta_quest2.py", line 5, in <module>
-    from oculus_reader.oculus_reader.reader import OculusReader
-ModuleNotFoundError: No module named 'oculus_reader
