@@ -204,15 +204,15 @@ class UfactoryDataCollection():
         run_folder.mkdir(parents=True, exist_ok=True)
 
         # Initialize camera interfaces
-        # cr_interfaces = {}
-        # for idx, camera_id in enumerate(self.camera_ids):
-        #     camera_info = {"camera_id": camera_id, "camera_name": self.camera_names[idx]}
-        #     if "rs" in camera_info["camera_name"]:
-        #         cr_interface = CameraRedisSubInterface(camera_info=camera_info, use_depth=False)
-        #     else:
-        #         cr_interface = CameraRedisSubInterface(camera_info=camera_info, use_depth=False)
-        #     cr_interface.start()
-        #     cr_interfaces[camera_id] = cr_interface
+        cr_interfaces = {}
+        for idx, camera_id in enumerate(self.camera_ids):
+            camera_info = {"camera_id": camera_id, "camera_name": self.camera_names[idx]}
+            if "rs" in camera_info["camera_name"]:
+                cr_interface = CameraRedisSubInterface(camera_info=camera_info, use_depth=True) # use depth, if not false
+            else:
+                cr_interface = CameraRedisSubInterface(camera_info=camera_info, use_depth=False)
+            cr_interface.start()
+            cr_interfaces[camera_id] = cr_interface
 
         # Initalize xarm ufactory
         sys.path.append(os.path.join(os.path.dirname(__file__), '../../..'))
@@ -301,25 +301,33 @@ class UfactoryDataCollection():
             # print(action)
 
             # camera data collection
-            # for camera_id in self.camera_ids:
-            #     img_info = cr_interfaces[camera_id].get_img_info()
-            #     imgs_array = cr_interfaces[camera_id].get_img()
-            #      # Save images for each camera
-            #     if cr_interfaces[camera_id].use_color:
-            #         img_bgr = cv2.cvtColor(imgs_array["color"], cv2.COLOR_RGB2BGR)
-            #         save_images_for_camera(camera_id, img_info, img_bgr)
-            #         data[f"camera_{camera_id}"].append(img_info["color_img_name"])
+            for camera_id in self.camera_ids:
+                img_info = cr_interfaces[camera_id].get_img_info()
+                imgs_array = cr_interfaces[camera_id].get_img()
+                
+                # 处理彩色图像
+                if cr_interfaces[camera_id].use_color:
+                    img_bgr = cv2.cvtColor(imgs_array["color"], cv2.COLOR_RGB2BGR)
+                    if self.save2memory_first:
+                        img_info["color_image_data"] = img_bgr
+                    else:
+                        success = cv2.imwrite(img_info["color_img_name"] + ".jpg", img_bgr)
+                        if not success:
+                            print(f"Failed to save image for camera {camera_id}")
+                    
+                    # 保存图像信息（不是文件名）
+                    data[f"camera_{camera_id}"].append(img_info)
                 # todo: add depth image support
-                # if cr_interfaces[camera_id].use_depth and "depth" in imgs_array:
-                #     try:
-                #         if self.save2memory_first:
-                #             img_info["depth_image_data"] = imgs_array["depth"]
-                #         else:
-                #             success = cv2.imwrite(img_info["depth_img_name"] + ".png", imgs_array["depth"])
-                #             if not success:
-                #                 print(f"failed saving depth image for camera {camera_id}")
-                #     except Exception as e:
-                #         print(f"Error saving depth image for camera {camera_id}: {e}")
+                if cr_interfaces[camera_id].use_depth and "depth" in imgs_array:
+                    try:
+                        if self.save2memory_first:
+                            img_info["depth_image_data"] = imgs_array["depth"]
+                        else:
+                            success = cv2.imwrite(img_info["depth_img_name"] + ".png", imgs_array["depth"])
+                            if not success:
+                                print(f"failed saving depth image for camera {camera_id}")
+                    except Exception as e:
+                        print(f"Error saving depth image for camera {camera_id}: {e}")
 
             # robotiq gripper control，only for xarm6 
             if self.robot_type == "xarm6":
@@ -372,27 +380,7 @@ class UfactoryDataCollection():
                 time.sleep(0.02 - elapsed_time)
             # print(i)
 
-            # Monitor data collection
-            # for camera_id in self.camera_ids:
-            #     img_info = cr_interfaces[camera_id].get_img_info()
-            #     imgs_array = cr_interfaces[camera_id].get_img()
-            #     if cr_interfaces[camera_id].use_color:
-            #         img_bgr = cv2.cvtColor(imgs_array["color"], cv2.COLOR_RGB2BGR)
-            #         if self.save2memory_first:
-            #             img_info["color_image_data"] = img_bgr
-            #         else:
-            #             save_images_for_camera(camera_id, img_info, img_bgr)
-            #         data[f"camera_{camera_id}"].append(img_info)
-                # if cr_interfaces[camera_id].use_depth and "depth" in imgs_array:
-                #     try:
-                #         if self.save2memory_first:
-                #             img_info["depth_image_data"] = imgs_array["depth"]
-                #         else:
-                #             success = cv2.imwrite(img_info["depth_img_name"] + ".png", imgs_array["depth"])
-                #             if not success:
-                #                 print(f"failed saving depth image for camera {camera_id}")
-                #     except Exception as e:
-                #         print(f"Error saving depth image for camera {camera_id}: {e}")
+            # Monitor the robot state and action
             if self.save2memory_first:
                 print("------------- recording over, saving images... -------------")
                 for camera_id in self.camera_ids:
@@ -402,15 +390,16 @@ class UfactoryDataCollection():
                             if not success:
                                 print("failed saving imgs")
                             del img_info["color_image_data"]
-                            if "depth_image_data" in img_info:
-                                try:
-                                    success = cv2.imwrite(img_info["depth_img_name"] + ".png", img_info["depth_image_data"])
-                                    if not success:
-                                        print(f"failed saving depth image for camera {camera_id}")
-                                    del img_info["depth_image_data"]
-                                except Exception as e:
-                                    print(f"Error saving depth image for camera {camera_id}: {e}")
-                print("------------- images saved -------------")
+                #         # Save depth image if available
+                #         if "depth_image_data" in img_info:
+                #             try:
+                #                 success = cv2.imwrite(img_info["depth_img_name"] + ".png", img_info["depth_image_data"])
+                #                 if not success:
+                #                     print(f"failed saving depth image for camera {camera_id}")
+                #                 del img_info["depth_image_data"]
+                #             except Exception as e:
+                #                 print(f"Error saving depth image for camera {camera_id}: {e}")
+                # print("------------- images saved -------------")
 
         arm.disconnect()
         self.tmp_folder = str(run_folder)
@@ -436,8 +425,8 @@ class UfactoryDataCollection():
         np.savez(f"{self.tmp_folder}/demo_joint_states", data=np.array(data["joint_states"]))
         np.savez(f"{self.tmp_folder}/demo_gripper_states", data=np.array(data["gripper_states"]))
         np.savez(f"{self.tmp_folder}/demo_action_hot", data=np.array(data["action_hot"]))
-        # for camera_id in self.camera_ids:
-        #     np.savez(f"{self.tmp_folder}/demo_camera_{camera_id}", data=np.array(data[f"camera_{camera_id}"]))
+        for camera_id in self.camera_ids:
+            np.savez(f"{self.tmp_folder}/demo_camera_{camera_id}", data=np.array(data[f"camera_{camera_id}"]))
 
         print("Total length of the trajectory: ", len(data["action"]))
         
