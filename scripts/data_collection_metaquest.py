@@ -13,7 +13,7 @@ import multiprocessing
 from xarm.x3.code import APIState
 import argparse
 from scripts.monitor_robot_control import monitor
-from io_devices.camera_redis_interface import CameraRedisSubInterface
+from io_devices.camera_redis_interface import CameraRedisSubInterface 
 import yaml
 from utils import YamlConfig
 
@@ -208,7 +208,7 @@ class UfactoryDataCollection():
         for idx, camera_id in enumerate(self.camera_ids):
             camera_info = {"camera_id": camera_id, "camera_name": self.camera_names[idx]}
             if "rs" in camera_info["camera_name"]:
-                cr_interface = CameraRedisSubInterface(camera_info=camera_info, use_depth=True) # use depth, if not false
+                cr_interface = CameraRedisSubInterface(camera_info=camera_info, use_depth=False) # use depth, if not false
             else:
                 cr_interface = CameraRedisSubInterface(camera_info=camera_info, use_depth=False)
             cr_interface.start()
@@ -269,8 +269,6 @@ class UfactoryDataCollection():
         i = 0
         start = False
         last_grasp_state = None 
-
-        time.sleep(2)
 
         if self.monitor:
             monitor_process = multiprocessing.Process(target=monitor, args=(self.times, self.state_points, self.action_points, self.monitor_save_path))
