@@ -17,6 +17,7 @@ from io_devices.camera_redis_interface import CameraRedisSubInterface
 import yaml
 from utils import YamlConfig
 
+
 # Function to calculate the delta pose from the current pose to the target absolute pose
 def get_delta_pose(current_pose, target_abs_pose, grasp):
     # position increment              
@@ -35,6 +36,7 @@ def get_delta_pose(current_pose, target_abs_pose, grasp):
     # action
     delta_action = delta_pos.tolist() + delta_euler.tolist() + [grasp_val]
     return delta_action
+
 
 # Function to convert input from the device to an action for the robot arm
 def input2action(device, controller_type="position_control", gripper_dof=1):
