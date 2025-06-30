@@ -453,7 +453,7 @@ def parse_args():
     parser.add_argument('--dataset-name', type=str, default="demos_collected")
     parser.add_argument('--obs-cfg', type=str, default="configs/real_robot_observation_cfg.yml")
     parser.add_argument('--robot', type=str, default='xarm6')
-    parser.add_argument('--ip', type=str, default='192.168.1.235')  # 移除 required=True，添加默认值
+    parser.add_argument('--ip', type=str, default='192.168.1.235')  
     parser.add_argument('--controller-type', type=str, default="position_control")
     parser.add_argument('--max-steps', type=int, default=1500)
     parser.add_argument('--save2memory-first', action='store_true')
