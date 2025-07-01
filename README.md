@@ -1,6 +1,6 @@
 # UFACTORY TELEOPERATION
 
-Experiments for Ufactory Xarm Ufactory Robots
+Experiments for Ufactory Xarm Robots
 
 ## 1. Installation
 ```
