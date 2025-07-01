@@ -1,9 +1,9 @@
 # UFACTORY TELEOPERATION
 
-Experiments for Ufactory Xarm Robots
+**Experiments for Ufactory Xarm Robots**
 
 ## 1. Installation
-```
+```bash
 conda create -n ufact python=3.9
 conda activate ufact
 # install ufactory API, Install from source code
@@ -53,7 +53,7 @@ Example usage (note that `camera_node.py` and `data_collection_metaquest.py` sho
 
 For Ufactory XArm6 (default):
 
-```
+```bash
  python scripts/reset_robot_joints.py 
  
  python scripts/reset_robot_cartesian.py
@@ -61,7 +61,7 @@ For Ufactory XArm6 (default):
 
 For other robots (i.e. Ufactory lite6)
 
-```
+```bash
 python scripts/reset_robot_joints.py  --robot lite6 --ip 192.168.1.193
 
 python scripts/reset_robot_cartesian.py  --robot lite6 --ip 192.168.1.193
@@ -69,17 +69,25 @@ python scripts/reset_robot_cartesian.py  --robot lite6 --ip 192.168.1.193
 
 ### 4.2 Open cameras needed, such as
 
+```bash
+# GoPro example
+python scripts/camera_node.py --camera-ref gopro_0 --use-rgb --visualization --img-h 720 --img-w 1280 --fps 30 --publish-freq 50 --camera-address '/dev/video6'
+
+# Webcam example
+python scripts/camera_node.py --camera-ref webcam_2 --use-rgb --visualization --img-h 1080 --img-w 1920 --fps 30 --publish-freq 50 --camera-address '/dev/video2'
+
+# RealSense camera example
+python scripts/camera_node.py --camera-ref rs_1 --use-rgb  --visualization --img-h 480 --img-w 640 --fps 30 --publish-freq 50
 ```
-python scripts/camera_node.py --camera-ref gopro_0 --use-rgb --visualization --img-h 720 --img-w 1280 --fps 30 --camera-address '/dev/video6'
+** if you want to use RGB and depth data from RealSense camera, you can run the following command:**
 
-python scripts/camera_node.py --camera-ref webcam_2 --use-rgb --visualization --img-h 1080 --img-w 1920 --fps 30 --camera-address '/dev/video2'
-
-python scripts/camera_node.py --camera-ref rs_1 --use-rgb --use-depth --visualization --img-h 480 --img-w 640 --fps 15
+```bash
+python scripts/camera_node.py --camera-ref rs_1 --use-rgb --use-depth --visualization --img-h 480 --img-w 640 --fps 30 --publish-freq 50
 ```
 
 if you want to check the cameras plugged,
 
-```
+```bash
 v4l2-ctl --list-devices
 ```
 
@@ -89,15 +97,45 @@ Node processes can be cleaned up by running `pkill -9 -f scripts/camera_node.py`
 
 For Ufactory XArm6 (default):
 
-```
+```bash
 python scripts/data_collection_metaquest.py
 ```
 
 For other robots (i.e. Ufactory lite6)
 
-```
+```bash
 python scripts/data_collection_metaquest.py --robot lite6 --ip 192.168.1.193
 ```
+
+## 5. Data format
+
+Collected data is stored in the `demos_collected` folder, with each run in a separate subfolder named `runXXX`, where `XXX` is the run number. Each run folder contains:
+
+### 5.1 Folder Structure
+
+```
+demos_collected/
+├── run001/
+│   ├── config.json                    # Configuration file
+│   ├── demo_action.npz               # Action sequence data
+│   ├── demo_ee_states.npz            # End effector states
+│   ├── demo_target_pose_mat.npz      # Target pose matrix
+│   ├── demo_joint_states.npz         # Joint states
+│   ├── demo_gripper_states.npz       # Gripper states
+│   ├── demo_action_hot.npz           # Action hotkey states
+│   └── demo_camera_1.npz             # Camera data index
+├── run002/
+│   ├── config.json
+│   ├── demo_*.npz
+│   └── demo_camera_1.npz
+└── images/
+    └── rs_rs_1_<timestamp>/
+        ├── color_000000001.jpg        # run001: i.e. Image 1-50
+        ├── color_000000002.jpg
+        ├── ...
+        ├── color_000000051.jpg        # run002: i.e. Image 51-120
+        └── ...
+```                                                                                                                                                                                                               
 
 # Acknowledgement
 Our repo was built on: 

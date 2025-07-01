@@ -21,7 +21,7 @@ def get_default_pose(robot_type):
     if robot_type == "lite6":
         return [210, -5, 472, -180, 0, 10]
     elif robot_type == "xarm6":
-        return [470.1, 30.9, 320.8, 175.2, 1.5, 89.6]   # xarm6 pose
+        return [481, 48.4, 315, -180, -2, 3.6]   # xarm6 pose
     elif robot_type == "uf850":
         return [300, 0, 500, -180, 0, 0] 
     else:

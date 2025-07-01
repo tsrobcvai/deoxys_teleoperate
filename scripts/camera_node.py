@@ -19,7 +19,6 @@ def main():
     parser.add_argument("--port", type=int, default=6379)
     parser.add_argument("--camera-ref", type=str, required=True)
     parser.add_argument("--camera-address", default="/dev/video0", type=str)
-    
     parser.add_argument("--use-rgb", action="store_true")
     parser.add_argument("--use-depth", action="store_true")
     
@@ -30,7 +29,29 @@ def main():
     parser.add_argument("--rgb-convention", default="rgb", choices=["bgr", "rgb"])
     parser.add_argument("--visualization", action="store_true")
 
+    parser.add_argument("--publish-freq", default=50, type=int, help="Redis publish frequency in Hz")
+    parser.add_argument("--sync-with-robot", action="store_true", help="Sync with robot control frequency")
     args = parser.parse_args()
+
+    # 设置发布频率
+    if args.sync_with_robot:
+        freq = 50.0  # Default frequency for sync with robot
+    else:
+        freq = float(args.publish_freq)
+    
+    print(f"Camera publish frequency set to: {freq} Hz")
+
+    # ...existing camera setup code...
+
+    print("Starting camera publisher...")
+    
+    img_counter = 0
+    # 删除这行重复的频率设置
+    # freq = 10.0  # publish frequency in Hz  <- 删除这行
+    MAX_IMG_NUM = 653360
+    COUNT_THRESH = 5
+    counter = COUNT_THRESH
+
 
     # Parse camera reference
     parts = args.camera_ref.split('_')
@@ -74,7 +95,18 @@ def main():
             if node_config.use_depth:
                 config.enable_stream(rs.stream.depth, args.img_w, args.img_h, rs.format.z16, args.fps)
             
-            pipeline.start(config)
+            profile = pipeline.start(config)
+
+            # 获取色彩传感器并设置参数
+            color_sensor = profile.get_device().first_color_sensor()
+            if color_sensor.supports(rs.option.auto_exposure_priority):
+                color_sensor.set_option(rs.option.auto_exposure_priority, 0)  
+            if color_sensor.supports(rs.option.exposure):
+                color_sensor.set_option(rs.option.exposure, 100) 
+            
+            print("RealSense camera initialized with optimized settings")
+
+#             pipeline.start(config)
             print("RealSense camera initialized successfully")
             
             def get_last_obs():
@@ -129,7 +161,7 @@ def main():
     print("Starting camera publisher...")
     
     img_counter = 0
-    freq = 10.0  # publish frequency in Hz
+    # freq = 10.0  # publish frequency in Hz
     MAX_IMG_NUM = 653360
     COUNT_THRESH = 5
     counter = COUNT_THRESH
