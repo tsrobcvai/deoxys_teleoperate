@@ -193,47 +193,51 @@
 #        xyz: xyz
 
 
-  camera_ids: ["0"]
-  camera_names: ["webcam_0"]
-  camera_refs: ["webcam_0"]
-  camera_types:
-    "webcam_0": "webcam"
-    "rs_1": "rs"
 
-  img_h: 480
-  img_w: 640
 
-  camera_name_conversion:
-    "webcam_0": "agentview0"
-    "rs_1": "agentview1"
 
-  obs_key_mapping:
-    camera_0_color: agentview_rgb
-    camera_1_color: agentview1_rgb
-    camera_1_depth: agentview1_depth
-    
-    gripper_states: gripper_states
-    joint_states: joint_states
-    ee_states: ee_states
-    xyz: xyz
+# camera_ids: ["0", "1"]
+# camera_names: ["webcam_0", "rs_1"]
+# camera_refs: ["webcam_0", "rs_1"]
+# camera_types:
+#   "webcam_0": "webcam"
+#   "rs_1": "rs"
 
-  camera_ids: ["1"]
-  camera_names: ["rs_1"]
-  camera_refs: ["rs_1"]
-  camera_types:
-    "rs_1": "rs"
+# img_h: 480
+# img_w: 640
 
-  img_h: 480
-  img_w: 640
+# camera_name_conversion:
+#   "webcam_0": "agentview0"
+#   "rs_1": "agentview1"
 
-  camera_name_conversion:
-    "rs_1": "agentview0"
+# obs_key_mapping:
+#   camera_0_color: agentview0_rgb
+#   camera_1_color: agentview1_rgb
+#   camera_1_depth: agentview1_depth
+  
+#   gripper_states: gripper_states
+#   joint_states: joint_states
+#   ee_states: ee_states
+#   xyz: xyz
 
-  obs_key_mapping:
-    camera_0_color: agentview_rgb
-    camera_0_depth: agentview_depth
-    
-    gripper_states: gripper_states
-    joint_states: joint_states
-    ee_states: ee_states
-    xyz: xyz
+
+camera_ids: ["1"]
+camera_names: ["rs_1"]
+camera_refs: ["rs_1"]
+camera_types:
+  "rs_1": "rs"
+
+img_h: 480
+img_w: 640
+
+camera_name_conversion:
+  "rs_1": "agentview1"
+
+obs_key_mapping:
+  camera_0_color: agentview1_rgb
+  # camera_0_depth: agentview1_depth
+  
+  gripper_states: gripper_states
+  joint_states: joint_states
+  ee_states: ee_states
+  xyz: xyz

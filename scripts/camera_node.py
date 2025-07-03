@@ -17,90 +17,124 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--host", type=str, default="localhost")
     parser.add_argument("--port", type=int, default=6379)
-    parser.add_argument("--camera-id", type=str, default="0")
-    parser.add_argument("--camera-name", type=str, default="webcam_0")
-    parser.add_argument("--camera-ref", type=str)
+    parser.add_argument("--camera-ref", type=str, required=True)
     parser.add_argument("--camera-address", default="/dev/video0", type=str)
-    
     parser.add_argument("--use-rgb", action="store_true")
     parser.add_argument("--use-depth", action="store_true")
     
     parser.add_argument("--img-w", default=640, type=int)
     parser.add_argument("--img-h", default=480, type=int)
     parser.add_argument("--fps", default=30, type=int)
-    parser.add_argument("--use-realsense", action="store_true", help="Use RealSense SDK instead of OpenCV")
-    parser.add_argument("--visualization", action="store_true")
     
     parser.add_argument("--rgb-convention", default="rgb", choices=["bgr", "rgb"])
+    parser.add_argument("--visualization", action="store_true")
 
+    parser.add_argument("--publish-freq", default=50, type=int, help="Redis publish frequency in Hz")
+    parser.add_argument("--sync-with-robot", action="store_true", help="Sync with robot control frequency")
     args = parser.parse_args()
 
-    # 兼容两种参数方式
-    if args.camera_ref:
-        # 解析camera_ref格式 (如: webcam_0, rs_1, gopro_0)
-        parts = args.camera_ref.split('_')
-        camera_type = parts[0]
-        camera_id = parts[1] if len(parts) > 1 else "0"
-        camera_name = args.camera_ref
+    # 设置发布频率
+    if args.sync_with_robot:
+        freq = 50.0  # Default frequency for sync with robot
     else:
-        # 使用传统参数
-        camera_type = "webcam"  # 默认类型
-        camera_id = args.camera_id
-        camera_name = args.camera_name
+        freq = float(args.publish_freq)
+    
+    print(f"Camera publish frequency set to: {freq} Hz")
 
-    # 相机信息
-    camera_info = {
+    # ...existing camera setup code...
+
+    print("Starting camera publisher...")
+    
+    img_counter = 0
+    # 删除这行重复的频率设置
+    # freq = 10.0  # publish frequency in Hz  <- 删除这行
+    MAX_IMG_NUM = 653360
+    COUNT_THRESH = 5
+    counter = COUNT_THRESH
+
+
+    # Parse camera reference
+    parts = args.camera_ref.split('_')
+    camera_type = parts[0]
+    camera_id = parts[1] if len(parts) > 1 else "0"
+    camera_name = args.camera_ref
+
+    # Create camera info
+    camera_info = EasyDict({
         "camera_id": camera_id,
         "camera_name": camera_name,
         "camera_type": camera_type
-    }
+    })
 
     print(f"Starting camera node for {camera_name} (ID: {camera_id}, Type: {camera_type})")
     
-    # 初始化Redis发布接口
+    # Initialize Redis interface
     camera2redis_pub_interface = CameraRedisPubInterface(
         camera_info=camera_info,
         redis_host=args.host, 
         redis_port=args.port
     )
 
-    # 初始化相机
+    # Node configuration
+    node_config = EasyDict(use_color=args.use_rgb, use_depth=args.use_depth)
+    
+    # Initialize camera
     pipeline = None
     cap = None
     
-    if args.use_realsense or camera_type == "rs":
-        # 使用RealSense SDK
+    if camera_type == "rs":
+        # RealSense camera
         try:
             import pyrealsense2 as rs
             
             pipeline = rs.pipeline()
             config = rs.config()
-            config.enable_stream(rs.stream.color, args.img_w, args.img_h, rs.format.bgr8, args.fps)
-            if args.use_depth:
+            
+            if node_config.use_color:
+                config.enable_stream(rs.stream.color, args.img_w, args.img_h, rs.format.bgr8, args.fps)
+            if node_config.use_depth:
                 config.enable_stream(rs.stream.depth, args.img_w, args.img_h, rs.format.z16, args.fps)
             
-            pipeline.start(config)
-            print("RealSense camera initialized successfully")
-            camera_type = "rs"
+            profile = pipeline.start(config)
+
+            # 获取色彩传感器并设置参数
+            color_sensor = profile.get_device().first_color_sensor()
+            if color_sensor.supports(rs.option.auto_exposure_priority):
+                color_sensor.set_option(rs.option.auto_exposure_priority, 0)  
+            if color_sensor.supports(rs.option.exposure):
+                color_sensor.set_option(rs.option.exposure, 100) 
             
-            def get_frame():
-                frames = pipeline.wait_for_frames()
-                color_frame = frames.get_color_frame()
-                depth_frame = frames.get_depth_frame() if args.use_depth else None
-                
-                result = {}
-                if color_frame:
-                    result["color"] = np.asanyarray(color_frame.get_data())
-                if depth_frame:
-                    result["depth"] = np.asanyarray(depth_frame.get_data())
-                return result if result else None
+            print("RealSense camera initialized with optimized settings")
+
+#             pipeline.start(config)
+            print("RealSense camera initialized successfully")
+            
+            def get_last_obs():
+                try:
+                    frames = pipeline.wait_for_frames()
+                    result = {}
+                    
+                    if node_config.use_color:
+                        color_frame = frames.get_color_frame()
+                        if color_frame:
+                            result["color"] = np.asanyarray(color_frame.get_data())
+                    
+                    if node_config.use_depth:
+                        depth_frame = frames.get_depth_frame()
+                        if depth_frame:
+                            result["depth"] = np.asanyarray(depth_frame.get_data())
+                    
+                    return result if result else None
+                except Exception as e:
+                    print(f"Error getting frame: {e}")
+                    return None
                 
         except ImportError:
-            print("pyrealsense2 not installed, falling back to OpenCV")
-            args.use_realsense = False
+            print("pyrealsense2 not installed")
+            return
     
-    if not args.use_realsense and camera_type != "rs":
-        # 使用OpenCV for webcam/gopro
+    elif camera_type in ["webcam", "gopro"]:
+        # OpenCV for webcam/gopro
         device_id = int(camera_id) if camera_id.isdigit() else args.camera_address
         
         cap = cv2.VideoCapture(device_id)
@@ -113,17 +147,22 @@ def main():
         cap.set(cv2.CAP_PROP_FPS, args.fps)
         print(f"OpenCV camera initialized successfully for {camera_type}")
         
-        def get_frame():
+        def get_last_obs():
             ret, frame = cap.read()
-            return {"color": frame} if ret else None
+            if ret:
+                return {"color": frame}
+            return None
 
-    # 创建保存目录
-    save_dir = f"demos_collected/images/{camera_name}_{int(time.time())}"
+    # Create save directory
+    t = time.time()
+    save_dir = f"demos_collected/images/{camera_type}_{camera_name}_{t}"
     os.makedirs(save_dir, exist_ok=True)
-
+    
+    print("Starting camera publisher...")
+    
     img_counter = 0
-    freq = 10.0  # 发布频率
-    MAX_IMG_NUM = 999999
+    # freq = 10.0  # publish frequency in Hz
+    MAX_IMG_NUM = 653360
     COUNT_THRESH = 5
     counter = COUNT_THRESH
 
@@ -133,12 +172,12 @@ def main():
         while True:
             start_time = time.time_ns()
 
-            # 获取图像
-            capture = get_frame()
+            # Get frame from camera
+            capture = get_last_obs()
             if capture is None:
                 continue
 
-            # 检查是否需要保存图像
+            # Check if we need to save the image
             save_img = camera2redis_pub_interface.get_save_img_info()
             
             if save_img:
@@ -146,38 +185,46 @@ def main():
             else:
                 counter += 1
 
-            # 准备图像信息
+            # Prepare image info
             t = time.time_ns()
             img_info = {
-                "color_img_name": f"{save_dir}/color_{img_counter:09d}",
-                "depth_img_name": f"{save_dir}/depth_{img_counter:09d}" if args.use_depth else "",
+                "color_img_name": "",
+                "depth_img_name": "",
                 "time": t,
                 "camera_type": camera_type,
                 "intrinsics": {"color": [], "depth": []}
             }
 
-            # 准备图像数据
+            # Prepare images
             imgs = {}
-            if "color" in capture and capture["color"] is not None:
+            
+            if node_config.use_color and "color" in capture and capture["color"] is not None:
                 color_img = capture["color"]
-                # 根据RGB约定转换颜色
+                
+                # Color image processing
                 if args.rgb_convention == "rgb":
                     imgs["color"] = cv2.cvtColor(color_img, cv2.COLOR_BGR2RGB)
                 else:
                     imgs["color"] = color_img
+                
+                color_img_name = f"{save_dir}/color_{img_counter:09d}"
+                img_info["color_img_name"] = color_img_name
                     
-            if "depth" in capture and capture["depth"] is not None:
+            if node_config.use_depth and "depth" in capture and capture["depth"] is not None:
                 imgs["depth"] = capture["depth"]
+                depth_img_name = f"{save_dir}/depth_{img_counter:09d}"
+                img_info["depth_img_name"] = depth_img_name
 
-            # 发布到Redis
+            # Publish to Redis
             camera2redis_pub_interface.set_img_info(img_info)
             camera2redis_pub_interface.set_img_buffer(imgs=imgs)
 
-            # 更新计数器
+            # Update counter
             if counter < COUNT_THRESH:
-                img_counter = (img_counter + 1) % MAX_IMG_NUM
+                img_counter += 1
+                img_counter = img_counter % MAX_IMG_NUM
 
-            # 可视化
+            # Visualization
             if args.visualization:
                 if "color" in imgs:
                     display_img = imgs["color"]
@@ -189,16 +236,18 @@ def main():
                     depth_display = (imgs["depth"] * 0.001).astype(np.float32)
                     cv2.imshow(f"Depth {camera_name}", depth_display)
                     
-                if cv2.waitKey(1) & 0xFF == ord('q'):
+                if cv2.waitKey(10) & 0xFF == ord('q'):
                     break
 
-            # 控制发布频率
+            # Control publish frequency
             end_time = time.time_ns()
             time_interval = (end_time - start_time) / (10 ** 9)
             if time_interval < 1.0 / freq:
                 time.sleep(1.0 / freq - time_interval)
+            
+            print(f"The camera node took {time_interval} to transmit image")
 
-            # 检查是否结束
+            # Check if we need to finish
             if camera2redis_pub_interface.finished:
                 break
 

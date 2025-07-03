@@ -13,9 +13,10 @@ import multiprocessing
 from xarm.x3.code import APIState
 import argparse
 from scripts.monitor_robot_control import monitor
-from io_devices.camera_redis_interface import CameraRedisSubInterface
+from io_devices.camera_redis_interface import CameraRedisSubInterface 
 import yaml
 from utils import YamlConfig
+
 
 # Function to calculate the delta pose from the current pose to the target absolute pose
 def get_delta_pose(current_pose, target_abs_pose, grasp):
@@ -35,6 +36,7 @@ def get_delta_pose(current_pose, target_abs_pose, grasp):
     # action
     delta_action = delta_pos.tolist() + delta_euler.tolist() + [grasp_val]
     return delta_action
+
 
 # Function to convert input from the device to an action for the robot arm
 def input2action(device, controller_type="position_control", gripper_dof=1):
@@ -208,7 +210,7 @@ class UfactoryDataCollection():
         for idx, camera_id in enumerate(self.camera_ids):
             camera_info = {"camera_id": camera_id, "camera_name": self.camera_names[idx]}
             if "rs" in camera_info["camera_name"]:
-                cr_interface = CameraRedisSubInterface(camera_info=camera_info, use_depth=True) # use depth, if not false
+                cr_interface = CameraRedisSubInterface(camera_info=camera_info, use_depth=False) # use depth, if not false
             else:
                 cr_interface = CameraRedisSubInterface(camera_info=camera_info, use_depth=False)
             cr_interface.start()
@@ -269,8 +271,6 @@ class UfactoryDataCollection():
         i = 0
         start = False
         last_grasp_state = None 
-
-        time.sleep(2)
 
         if self.monitor:
             monitor_process = multiprocessing.Process(target=monitor, args=(self.times, self.state_points, self.action_points, self.monitor_save_path))
@@ -453,7 +453,7 @@ def parse_args():
     parser.add_argument('--dataset-name', type=str, default="demos_collected")
     parser.add_argument('--obs-cfg', type=str, default="configs/real_robot_observation_cfg.yml")
     parser.add_argument('--robot', type=str, default='xarm6')
-    parser.add_argument('--ip', type=str, default='192.168.1.235')  
+    parser.add_argument('--ip', type=str, default='192.168.1.235')  # 移除 required=True，添加默认值
     parser.add_argument('--controller-type', type=str, default="position_control")
     parser.add_argument('--max-steps', type=int, default=1500)
     parser.add_argument('--save2memory-first', action='store_true')

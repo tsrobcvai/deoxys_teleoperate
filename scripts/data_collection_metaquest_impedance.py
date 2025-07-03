@@ -12,7 +12,7 @@ from pathlib import Path
 import multiprocessing
 from xarm.x3.code import APIState
 import matplotlib
-matplotlib.use("Agg")          # 后端设为无界面，防止阻塞
+matplotlib.use("Agg")     # Use Agg backend for matplotlib to avoid GUI issues in headless environments
 import matplotlib.pyplot as plt
 
 
@@ -102,8 +102,8 @@ class UfactoryDataCollection():
         self.max_steps = max_steps
         self.monitor = monitor
 
-        self.ft_history = []           # 用来记录每一步的 ft_data[1]（长度 6）
-        self.ft_png_path = self.folder / "ft_history.png"  # 输出文件
+        self.ft_history = []           # used to save the force-torque sensor data
+        self.ft_png_path = self.folder / "ft_history.png"  # path to save the force-torque history plot
 
         
         # logging config
@@ -141,7 +141,7 @@ class UfactoryDataCollection():
         ax.legend(fontsize=5, loc="upper right", ncol=2, frameon=False)
         fig.tight_layout(pad=0.2)
 
-        plt.savefig(self.ft_png_path, dpi=100)   # 覆盖保存
+        plt.savefig(self.ft_png_path, dpi=100)   # save as 256x256 PNG
         plt.close(fig)
 
 
@@ -306,7 +306,7 @@ class UfactoryDataCollection():
             # J_speed  = arm.last_used_joint_speed()
             # import pdb;pdb.set_trace()
             ft_data = arm.get_ft_sensor_data()          # ft_data: (0, [fx, fy, fz, Tx, Ty, Tz])
-            self.ft_history.append(ft_data[1])          # 只要第二项 6 维列表
+            self.ft_history.append(ft_data[1])          # # save the force-torque sensor data
 
             # 每 50 步覆盖输出一次 256×256 PNG
             if len(self.ft_history) % 50 == 0:

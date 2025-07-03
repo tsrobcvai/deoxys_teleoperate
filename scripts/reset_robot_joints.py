@@ -23,7 +23,7 @@ def get_default_joints(robot_type):
     if robot_type == "lite6":
         return [0, 0, 90, 0, 90 , -17]  
     elif robot_type == "xarm6":
-        return [4.6, -5, -90, 0, 90, -85]  
+        return [5.4, 0.9, -92.6, 1.1, 90, 2.2]  
     elif robot_type == "uf850":
         return [0, 0, 60, 0, 60, -17]
     else:
