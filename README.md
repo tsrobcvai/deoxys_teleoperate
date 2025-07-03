@@ -20,11 +20,7 @@ cd ../..
 ### 2. Meta quest 2
 ### Installation
 
-Headset should be plugged into PC, and the permissions prompt "USB debugging" should be accepted in the system of headset.
-
-Also, the controller has to be in view of the headset cameras. It detects the pose of the handle via infrared stickers on the handle.
-
-Teleoperation works by applying the changes to the oculus handle’s pose to the robot gripper’s pose.
+Headset should be plugged into PC, and the permissions prompt "USB debugging" should be accepted in the system of headset. Also, the controller has to be in view of the headset cameras. It detects the pose of the handle via infrared stickers on the handle. Teleoperation works by applying the changes to the oculus handle’s pose to the robot gripper’s pose.
 
 ### Core code
 
