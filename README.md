@@ -46,25 +46,46 @@ Example usage (note that `camera_node.py` and `data_collection_metaquest.py` sho
 
 ### 4.1 Reset robot pose if need
 
-```
+
+For Ufactory XArm6 (default):
+
+```bash
+ # Reset robot joints to zero position
  python scripts/reset_robot_joints.py 
  # Reset robot Cartesian pose to zero position
  python scripts/reset_robot_cartesian.py
 ```
 
+For other robots (i.e. Ufactory lite6)
+
+```bash
+# Reset robot joints to zero position
+python scripts/reset_robot_joints.py  --robot lite6 --ip 192.168.1.193
+# Reset robot Cartesian pose to zero position
+python scripts/reset_robot_cartesian.py  --robot lite6 --ip 192.168.1.193
+```
+
 ### 4.2 Open cameras needed, such as
 
+```bash
+# GoPro example
+python scripts/camera_node.py --camera-ref gopro_0 --use-rgb --visualization --img-h 720 --img-w 1280 --fps 30 --publish-freq 50 --camera-address '/dev/video6'
+# Webcam example
+python scripts/camera_node.py --camera-ref webcam_2 --use-rgb --visualization --img-h 1080 --img-w 1920 --fps 30 --publish-freq 50 --camera-address '/dev/video2'
+# RealSense camera example
+python scripts/camera_node.py --camera-ref rs_1 --use-rgb  --visualization --img-h 480 --img-w 640 --fps 30 --publish-freq 50
 ```
-python scripts/camera_node.py --camera-ref gopro_0 --use-rgb --visualization --img-h 720 --img-w 1280 --fps 30 --camera-address '/dev/video6'
+** if you want to use RGB and depth data from RealSense camera, you can run the following command:**
 
-python scripts/camera_node.py --camera-ref webcam_2 --use-rgb --visualization --img-h 1080 --img-w 1920 --fps 30 --camera-address '/dev/video2'
-
-python scripts/camera_node.py --camera-ref rs_1 --use-rgb --use-depth --visualization --img-h 480 --img-w 640 --fps 15
+```bash
+# RealSense camera example with RGB and depth
+python scripts/camera_node.py --camera-ref rs_1 --use-rgb --use-depth --visualization --img-h 480 --img-w 640 --fps 30 --publish-freq 50
 ```
 
 if you want to check the cameras plugged,
 
-```
+```bash
+# List all video devices
 v4l2-ctl --list-devices
 ```
 
@@ -74,13 +95,15 @@ Node processes can be cleaned up by running `pkill -9 -f scripts/camera_node.py`
 
 For Ufactory XArm6 (default):
 
-```
+```bash
+# Start collecting data with Meta Quest 2
 python scripts/data_collection_metaquest.py
 ```
 
 For other robots (i.e. Ufactory lite6)
 
-```
+```bash
+# Start collecting data with Meta Quest 2
 python scripts/data_collection_metaquest.py --robot lite6 --ip 192.168.1.193
 ```
 

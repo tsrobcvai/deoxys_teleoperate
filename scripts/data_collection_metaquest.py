@@ -70,6 +70,7 @@ def input2action(device, controller_type="position_control", gripper_dof=1):
         # TODO: if controller_type =="", add other controller type
 
     action_hot = 1 if action_hot else 0
+    # action_hot = 1  # Force to collect data every step
     return action, grasp, target_pose_mat, action_hot, stop_record
 
     # ------ Calculate delta action (optional) # TODO: Check this step, Replay the action
@@ -331,44 +332,42 @@ class UfactoryDataCollection():
 
             # robotiq gripper control，only for xarm6 
             if self.robot_type == "xarm6":
-                if last_grasp_state != grasp:
-                    if grasp:
-                        code, ret = arm.robotiq_close(wait=False)
-                        print('robotiq_close, code={}, ret={}'.format(code, ret))
-                    else:
-                        code, ret = arm.robotiq_open(wait=False)
-                        print('robotiq_open, code={}, ret={}'.format(code, ret))
-                    last_grasp_state = grasp
-                    
-                    if code == APIState.END_EFFECTOR_HAS_FAULT:
-                        print('robotiq fault code: {}'.format(arm.robotiq_status['gFLT']))
-                        device.stop_control()
-                        break
+                try:
+                    status = arm.robotiq_get_status()
+                    gripper_state = status['width'] if 'width' in status else 0
+                except Exception as e:
+                    print(f"Failed to get gripper state: {e}")
+                    gripper_state = 0
             elif self.robot_type == "lite6":
-                # suction gripper only for lite6, suction=close，release=open
-                if last_grasp_state != grasp:
-                    if grasp:
-                        arm.open_lite6_gripper()   # suction
-                        print('suction: open')
-                    else:
-                        arm.close_lite6_gripper()  # release
-                        print('suction: close')
-                    last_grasp_state = grasp
+                # lite6 gripper control
+                gripper_state = 1 if grasp else 0
+            else:
+                gripper_state = 0
             
             # Collect data for monitoring
             ee_state = arm.get_position()[1]
             joint_state = arm.get_servo_angle()[1] if hasattr(arm, "get_servo_angle") else [0]*6
-            gripper_state = 0  
-            delta_action = []  # Optional, can be used for delta action calculation
-            
-            data["action"].append(action)
-            data["target_pose_mat"].append(target_pose_mat)
-            data["ee_states"].append(ee_state)
-            data["joint_states"].append(joint_state)
-            data["gripper_states"].append(gripper_state)
-            data["action_hot"].append(action_hot)
-            data["delta_action"].append(delta_action)
-            data["grasp"].append(grasp)
+            ee_rot = Rotation.from_euler('xyz', [ee_state[3], ee_state[4], ee_state[5]], degrees=True)
+            ee_pose_mat = np.eye(4)
+            ee_pose_mat[:3, :3] = ee_rot.as_matrix()
+            ee_pose_mat[:3, 3] = ee_state[:3]
+            delta_action = get_delta_pose(ee_pose_mat, target_pose_mat, grasp)
+
+
+            # Process the state for monitoring
+            delta_action = get_delta_pose(ee_pose_mat, target_pose_mat, grasp)
+            if action_hot:
+                data["action"].append(action)
+                data["target_pose_mat"].append(target_pose_mat)
+                data["ee_states"].append(ee_state)
+                data["joint_states"].append(joint_state)
+                data["gripper_states"].append(gripper_state)
+                data["action_hot"].append(action_hot)
+                data["delta_action"].append(delta_action)
+                data["grasp"].append(grasp)
+                # camera data collection
+                for camera_id in self.camera_ids:
+                    data[f"camera_{camera_id}"].append(img_info) 
 
             if stop_record:
                 device.stop_control()
