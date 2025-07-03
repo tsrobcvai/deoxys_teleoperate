@@ -222,10 +222,10 @@ class UfactoryDataCollection():
         last_grasp_state = None 
 
         # set tool impedance parameters:
-        K_pos = 10         #  x/y/z linear stiffness coefficient, range: 0 ~ 2000 (N/m)
-        K_ori = 0.1          #  Rx/Ry/Rz rotational stiffness coefficient, range: 0 ~ 20 (Nm/rad)
+        K_pos = 300         #  x/y/z linear stiffness coefficient, range: 0 ~ 2000 (N/m)
+        K_ori = 3          #  Rx/Ry/Rz rotational stiffness coefficient, range: 0 ~ 20 (Nm/rad)
         # Attention: for M and J, smaller value means less effort to drive the arm, but may also be less stable, please be careful. 
-        M = float(0.03)  #  x/y/z equivalent mass; range: 0.02 ~ 1 kg
+        M = float(0.06)  #  x/y/z equivalent mass; range: 0.02 ~ 1 kg
         J = M * 0.01     #  Rx/Ry/Rz equivalent moment of inertia, range: 1e-4 ~ 0.01 (Kg*m^2)
         # c_axis = [0,0,1,0,0,0] # set z axis as compliant axis
         c_axis = [1,1,1,1,1,1]  
@@ -238,16 +238,17 @@ class UfactoryDataCollection():
             return 2 * zeta * math.sqrt(m * k)
         B_xyz = [crit_b(M, K_pos)]*3
         B_rpy = [crit_b(J, K_ori)]*3
-        B = B_xyz + B_rpy      
+        B = B_xyz + B_rpy
+        
         # import pdb;pdb.set_trace()
         # B = [6.788225099390856, 6.788225099390856, 6.788225099390856, 
         # 0.06788225099390857, 0.06788225099390857, 0.06788225099390857]
-        arm.set_impedance_mbk([M, M, M, J, J, J], [K_pos, K_pos, K_pos, K_ori, K_ori, K_ori], B)
+        arm.set_impedance_mbk([M, M, M, J, J, J], [K_pos, K_pos, K_pos, K_ori, K_ori, K_ori], B ) # B [0]*6
         arm.set_impedance_config(ref_frame, c_axis)
         # enable ft sensor communication
         arm.ft_sensor_enable(1)
         # will overwrite previous sensor zero and payload configuration
-        # arm.ft_sensor_set_zero() # remove this if zero_offset and payload already identified & compensated!
+        arm.ft_sensor_set_zero() # remove this if zero_offset and payload already identified & compensated!
         time.sleep(0.2) # wait for writing zero operation to take effect, do not remove
         # move robot in impedance control application
         arm.ft_sensor_app_set(1)
