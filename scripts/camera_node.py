@@ -33,7 +33,7 @@ def main():
     parser.add_argument("--sync-with-robot", action="store_true", help="Sync with robot control frequency")
     args = parser.parse_args()
 
-    # 设置发布频率
+    # Set publish frequency based on sync with robot or user input
     if args.sync_with_robot:
         freq = 50.0  # Default frequency for sync with robot
     else:
@@ -46,8 +46,8 @@ def main():
     print("Starting camera publisher...")
     
     img_counter = 0
-    # 删除这行重复的频率设置
-    # freq = 10.0  # publish frequency in Hz  <- 删除这行
+    
+    # Constants
     MAX_IMG_NUM = 653360
     COUNT_THRESH = 5
     counter = COUNT_THRESH
@@ -97,7 +97,7 @@ def main():
             
             profile = pipeline.start(config)
 
-            # 获取色彩传感器并设置参数
+            # Set camera options for better performance
             color_sensor = profile.get_device().first_color_sensor()
             if color_sensor.supports(rs.option.auto_exposure_priority):
                 color_sensor.set_option(rs.option.auto_exposure_priority, 0)  
@@ -132,10 +132,11 @@ def main():
         except ImportError:
             print("pyrealsense2 not installed")
             return
-    
+
+
     elif camera_type in ["webcam", "gopro"]:
-        # OpenCV for webcam/gopro
-        device_id = int(camera_id) if camera_id.isdigit() else args.camera_address
+        # Always use the camera address for webcam/gopro
+        device_id = args.camera_address
         
         cap = cv2.VideoCapture(device_id)
         if not cap.isOpened():
@@ -220,9 +221,8 @@ def main():
             camera2redis_pub_interface.set_img_buffer(imgs=imgs)
 
             # Update counter
-            if counter < COUNT_THRESH:
-                img_counter += 1
-                img_counter = img_counter % MAX_IMG_NUM
+            img_counter += 1
+            img_counter = img_counter % MAX_IMG_NUM
 
             # Visualization
             if args.visualization:

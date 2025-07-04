@@ -4,7 +4,7 @@ import time
 import math
 import argparse
 import numpy as np
-
+from xarm.x3.code import APIState
 sys.path.append(os.path.join(os.path.dirname(__file__), '../../..'))
 from xarm.wrapper import XArmAPI
 
@@ -23,7 +23,7 @@ def get_default_joints(robot_type):
     if robot_type == "lite6":
         return [0, 0, 90, 0, 90 , -17]  
     elif robot_type == "xarm6":
-        return [5.4, 0.9, -92.6, 1.1, 90, 2.2]  
+        return [5.4, -4.7, -85.5, -0.8, 86.6, 6.5]  
     elif robot_type == "uf850":
         return [0, 0, 60, 0, 60, -17]
     else:
@@ -48,6 +48,9 @@ def main():
     arm.set_mode(0)
     arm.set_state(state=0)
     time.sleep(0.5)
+
+    code, ret = arm.robotiq_open()
+    print('robotiq_open, code={}, ret={}'.format(code, ret))
 
     if args.joint is None:
         joint = np.array(get_default_joints(args.robot), dtype=np.float32)

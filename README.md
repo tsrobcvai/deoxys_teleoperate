@@ -69,11 +69,11 @@ python scripts/reset_robot_cartesian.py  --robot lite6 --ip 192.168.1.193
 
 ```bash
 # GoPro example
-python scripts/camera_node.py --camera-ref gopro_0 --use-rgb --visualization --img-h 720 --img-w 1280 --fps 30 --publish-freq 50 --camera-address '/dev/video6'
+python scripts/camera_node.py --camera-ref gopro_0 --use-rgb --visualization --img-h 720 --img-w 1280 --fps 30  --camera-address '/dev/video6'
 # Webcam example
-python scripts/camera_node.py --camera-ref webcam_2 --use-rgb --visualization --img-h 1080 --img-w 1920 --fps 30 --publish-freq 50 --camera-address '/dev/video2'
+python scripts/camera_node.py --camera-ref webcam_2 --use-rgb --visualization --img-h 1080 --img-w 1920 --fps 30 --camera-address '/dev/video6'
 # RealSense camera example
-python scripts/camera_node.py --camera-ref rs_1 --use-rgb  --visualization --img-h 480 --img-w 640 --fps 30 --publish-freq 50
+python scripts/camera_node.py --camera-ref rs_1 --use-rgb  --visualization --img-h 480 --img-w 640 --fps 30 
 ```
 ** if you want to use RGB and depth data from RealSense camera, you can run the following command:**
 
@@ -133,7 +133,7 @@ demos_collected/
         ├── color_000000001.jpg        # run001: i.e. Image 1-50
         ├── color_000000002.jpg
         ├── ...
-        ├── color_000000051.jpg        # run002: i.e. Image 51-120
+        ├── color_000000101.jpg        # run002: i.e. Image 101-120
         └── ...
 ```                                                                                                                                                                                                               
 
