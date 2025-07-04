@@ -68,10 +68,8 @@ python scripts/reset_robot_cartesian.py  --robot lite6 --ip 192.168.1.193
 ### 4.2 Open cameras needed, such as
 
 ```bash
-# GoPro example
-python scripts/camera_node.py --camera-ref gopro_0 --use-rgb --visualization --img-h 720 --img-w 1280 --fps 30  --camera-address '/dev/video6'
 # Webcam example
-python scripts/camera_node.py --camera-ref webcam_2 --use-rgb --visualization --img-h 1080 --img-w 1920 --fps 30 --camera-address '/dev/video6'
+python scripts/camera_node.py --camera-ref webcam_0 --use-rgb --visualization --img-h 1080 --img-w 1920 --fps 30 --camera-address '/dev/video6'
 # RealSense camera example
 python scripts/camera_node.py --camera-ref rs_1 --use-rgb  --visualization --img-h 480 --img-w 640 --fps 30 
 ```
