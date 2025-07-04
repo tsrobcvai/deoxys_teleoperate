@@ -11,7 +11,7 @@ import numpy as np
 import redis
 from easydict import EasyDict
 
-from io_devices.camera_redis_interface import CameraRedisPubInterface
+from cam_base.camera_redis_interface import CameraRedisPubInterface
 
 def main():
     parser = argparse.ArgumentParser()

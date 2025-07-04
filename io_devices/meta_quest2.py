@@ -103,7 +103,7 @@ class Meta_quest2:
         return {
             "target_pose": target_pose,
             "grasp": self._state["buttons"]["RTr"],
-            "reset": self._state["buttons"]["A"],
+            "stop": self._state["buttons"]["A"],
             "action_hot": self._state["buttons"]["RG"], # TODO: name RG RJ RThu  rightJS rightTrig  rightGrip
-            "stop_record": self._stop_record,
+            "over": self._stop_record,
         }
