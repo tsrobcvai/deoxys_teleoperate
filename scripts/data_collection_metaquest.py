@@ -345,11 +345,12 @@ class UfactoryDataCollection():
                         print('robotiq fault code: {}'.format(arm.robotiq_status['gFLT']))
                         device.stop_control()
                         break
-            # elif self.robot_type == "lite6":
-            #     # lite6 gripper control
-            #     gripper_state = 1 if grasp else 0
-            # else:
-            #     gripper_state = 0
+            # lite 6 gripper control
+            elif self.robot_type == "lite6":
+                # lite6 gripper control
+                gripper_state = 1 if grasp else 0
+            else:
+                gripper_state = 0
             
             # Collect data for monitoring
             ee_state = arm.get_position()[1]
