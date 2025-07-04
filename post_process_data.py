@@ -122,7 +122,42 @@ class MetaQuestDataProcessor:
 
         return np.array(images)
     
-    def process_meta_quest_observations(self, run_data, images):
+
+    def load_multi_camera_images(self, run_dir, run_data):
+        """加载多路相机图片，返回 dict"""
+        images_dict = {}
+        
+        for cam_key in ['camera_0', 'camera_1']:
+            if cam_key in run_data:
+                cam_npz = run_data[cam_key]
+                img_names = [item['color_img_name'] for item in cam_npz]
+                print(f"[DEBUG] {cam_key} first 3 img_names:", img_names[:3])
+                imgs = []
+
+                for img_name in img_names:
+                    img_path = Path(img_name)
+                    # 如果没有扩展名，自动加上 .jpg
+                    if img_path.suffix == "":
+                        img_path = img_path.with_suffix(".jpg")
+                    img_path = img_path.resolve()
+                    if not img_path.exists():
+                        print(f"[DEBUG] Image path does not exist: {img_path}")
+                    else:
+                        img = cv2.imread(str(img_path))
+                        if img is not None:
+                            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+                            img = cv2.resize(img, self.image_size)
+                            imgs.append(img)
+                        else:
+                            print(f"[DEBUG] cv2.imread failed for {img_path}")
+
+                if imgs:
+                    images_dict[cam_key] = np.array(imgs)
+                else:
+                    print(f"[DEBUG] No images loaded for {cam_key}")
+        return images_dict
+
+    def process_meta_quest_observations(self, run_data, images_dict):
         """Process Meta Quest observations"""
         obs = {}
 
@@ -146,9 +181,18 @@ class MetaQuestDataProcessor:
         if 'gripper_states' in run_data:
             obs['gripper'] = run_data['gripper_states']
 
-        # Process image data
-        if images is not None:
-            obs['agentview_image'] = images
+        # 多路相机处理
+        camera_key_to_obs_key = {
+            'camera_0': 'agentview0_image',
+            'camera_1': 'agentview1_image'
+        }
+        if images_dict is not None:
+            for cam_key, imgs in images_dict.items():
+                obs_key = camera_key_to_obs_key.get(cam_key, cam_key)
+                obs[obs_key] = imgs
+            # 默认 agentview_image 指向 agentview0_image
+            if 'agentview0_image' in obs:
+                obs['agentview_image'] = obs['agentview0_image']
 
         # Process action hot encoding as labels
         if 'action_hot' in run_data:
@@ -237,14 +281,8 @@ class MetaQuestDataProcessor:
                 continue
 
             # Find camera data
-            camera_data = None
-            for key in run_data.keys():
-                if key.startswith('camera_'):
-                    camera_data = run_data[key]
-                    break
-            
-            images = self.load_images_for_run(run_dir, camera_data)
-            obs = self.process_meta_quest_observations(run_data, images)
+            images_dict = self.load_multi_camera_images(run_dir, run_data)
+            obs = self.process_meta_quest_observations(run_data, images_dict)
             actions = self.process_meta_quest_actions(run_data)
             
             if len(actions) == 0:

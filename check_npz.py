@@ -1,7 +1,7 @@
 import numpy as np
 import os
 
-folder = "./demos_collected/run003"
+folder = "./demos_collected/run001"
 for fname in os.listdir(folder):
     if fname.endswith(".npz"):
         print(f"\nChecking file: {fname}")
