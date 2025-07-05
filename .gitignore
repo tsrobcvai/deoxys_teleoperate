@@ -12,3 +12,4 @@ data/
 .DS_Store
 Thumbs.db
 demos_collected/
+outputs/

@@ -13,9 +13,7 @@ import multiprocessing
 from xarm.x3.code import APIState
 import hydra
 from omegaconf import DictConfig
-from scripts.DEPRECATED._monitor_robot_control import monitor
-from cam_base.camera_redis_interface import CameraRedisSubInterface 
-import yaml
+from cam_base.camera_redis_interface import CameraRedisSubInterface
 from utils import YamlConfig
 from xarm.wrapper import XArmAPI
 
@@ -44,29 +42,30 @@ def input2action(device, controller_type="cartsian_servo_position"):
     else:
         raise NotImplementedError(f"Controller type {controller_type} is not implemented")
 
-    return action, grasp, target_pose_mat, action_hot, stop, over
+    # not return target_pose_mat
+    return action, grasp_val, action_hot, stop, over
 
 
-# Safety control function to ensure the target action is within the robot's operational limits
-def safety_control(target_action, robot_type="xarm6"):
-    # unit mm
-    if robot_type == "lite6":
-        if not -420 <= target_action[0] <= 420:         # x axis
-            return False
-        if not -420 <= target_action[1] <= 420:         # y axis
-            return False
-        if not -150 <= target_action[2] <= 650:         # z axis
-            return False
-    elif robot_type == "xarm6":  # xarm6
-        if not -680 <= target_action[0] <= 680:         # x axis
-            return False
-        if not -680 <= target_action[1] <= 680:         # y axis  
-            return False
-        if not -930 <= target_action[2] <= 930:         # z axis
-            return False
-    else:
-        raise NotImplementedError(f"Safety control not implemented for robot type {robot_type}")
-    return True
+# # Safety control function to ensure the target action is within the robot's operational limits
+# def safety_control(target_action, robot_type="xarm6"):
+#     # unit mm
+#     if robot_type == "lite6":
+#         if not -420 <= target_action[0] <= 420:         # x axis
+#             return False
+#         if not -420 <= target_action[1] <= 420:         # y axis
+#             return False
+#         if not -150 <= target_action[2] <= 650:         # z axis
+#             return False
+#     elif robot_type == "xarm6":  # xarm6
+#         if not -680 <= target_action[0] <= 680:         # x axis
+#             return False
+#         if not -680 <= target_action[1] <= 680:         # y axis  
+#             return False
+#         if not -930 <= target_action[2] <= 930:         # z axis
+#             return False
+#     else:
+#         raise NotImplementedError(f"Safety control not implemented for robot type {robot_type}")
+#     return True
 
 class UfactoryDataCollection():
     def __init__(self,
@@ -95,7 +94,7 @@ class UfactoryDataCollection():
         # logging config
         logging.basicConfig(level=logging.INFO)
         self.logger = logging.getLogger("UfactoryDataCollection")
-        self.logger.info(f"Saving to {self.folder}")
+        self.logger.info(f"Will save to {self.folder}")
         self.max_steps = max_steps
         self.tmp_folder = None 
 
@@ -105,8 +104,7 @@ class UfactoryDataCollection():
             "joint_states": [],
             "gripper_states": [],
             "action_hot": [],
-            "delta_action": [],
-            "grasp": [],
+            "action_grasp": [],
             "FT_raw": [],
             "FT_processed": [],
         }
@@ -131,11 +129,11 @@ class UfactoryDataCollection():
         
         # Initialize the FT sensor
         if self.FT_option:
-            arm.ft_sensor_enable(0)
-            arm.clean_error()
-            arm.clean_warn()
             arm.ft_sensor_enable(1)
             arm.ft_sensor_set_zero()
+            time.sleep(0.2)
+            arm.ft_sensor_app_set(1)
+            arm.set_state(0)
         time.sleep(0.5)
 
         # Initialize the metaquest2
@@ -149,6 +147,7 @@ class UfactoryDataCollection():
         time.sleep(0.5)
 
         i = 0
+        gripper_state = 1 # -1 for open, 1 for close  #TODO: Tao: HARDCORD here
         # start = False
         while arm.connected and arm.error_code == 0 and i < self.max_steps:
             i += 1
@@ -184,17 +183,16 @@ class UfactoryDataCollection():
             # save states
             ee_state = arm.get_position()[1]
             joint_state = arm.get_servo_angle()[1] if hasattr(arm, "get_servo_angle") else [0]*6
-            robotiq_status = arm.robotiq_get_status()
-            gripper_state = robotiq_status['width']
-
+    
             self.obs_action_data["ee_states"].append(ee_state)
             self.obs_action_data["joint_states"].append(joint_state)
             self.obs_action_data["gripper_states"].append(gripper_state)
 
             # read action from the device
             action, action_grasp, action_hot, stop_collection, over = input2action(device=device)
-
+            gripper_state = action_grasp # 1 for grasp, 0 for release
             
+            # import pdb;pdb.set_trace()
             if action_grasp == 1:
                 code, ret = arm.robotiq_close(wait=False)
             elif action_grasp == -1:
@@ -220,13 +218,15 @@ class UfactoryDataCollection():
                 break
 
             # Safety control 
-            if not safety_control(action):
-                device.stop_control()
-                print("The ee location is beyond the predefined safety range")
-                break
+            # if not safety_control(action):
+            #     device.stop_control()
+            #     print("The ee location is beyond the predefined safety range")
+            #     break
 
             # perform the action
-            arm.set_servo_cartesian(action, speed=20, mvacc=200) # action is absolute pose [x, y, z, roll, pitch, yaw] Eular angles in degrees
+            action = action[:6]  # only take the first 6 elements for xarm
+            print(f"Action: {action}, Grasp: {action_grasp}")
+            arm.set_servo_cartesian(action, speed=20, mvacc=200) # action, is absolute pose list [x, y, z, roll, pitch, yaw] Eular angles in degrees
 
             self.obs_action_data["action_grasp"].append(action_grasp)
             self.obs_action_data["action"].append(action)
@@ -239,6 +239,7 @@ class UfactoryDataCollection():
                 time.sleep(ctrl_setp - elapsed_time)
 
         if self.FT_option:
+            arm.ft_sensor_app_set(0)
             arm.ft_sensor_enable(0)
         arm.disconnect()
 
