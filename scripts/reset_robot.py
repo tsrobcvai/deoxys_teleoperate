@@ -27,6 +27,9 @@ def main(robot: str = "xarm6",
     #     return
 
     # switch to position control (mode 0) and move
+    print(f"current position: {np.asarray(arm.get_position_aa(is_radian=True)[1])}")
+    import pdb; pdb.set_trace()
+    
     arm.set_mode(0)
     arm.set_state(0)
     time.sleep(0.5)

@@ -33,12 +33,12 @@ def input2action(device, controller_type="cartsian_servo_position"):
     target_rot = target_pose_mat[:3, :3]   # @ reset_coord_mat[:3,:3] # Reset coordiate
     target_rot_mat = Rotation.from_matrix(target_rot)
     # Convert rotation to Euler angles for xarm ufactory 
-    euler_angle = target_rot_mat.as_euler('xyz', degrees=True)
-    action_euler_angle = euler_angle.flatten() * 1
+    axis_angle = target_rot_mat.as_rotvec(degrees=False) # axis angles in radian
+    action_axis_angle = axis_angle.flatten() * 1
 
     if controller_type == "cartsian_servo_position":
         grasp_val = 1 if grasp else -1
-        action = action_pos.tolist() + action_euler_angle.tolist() + [grasp_val] 
+        action = action_pos.tolist() + action_axis_angle.tolist() + [grasp_val] 
     else:
         raise NotImplementedError(f"Controller type {controller_type} is not implemented")
 
@@ -138,8 +138,8 @@ class UfactoryDataCollection():
 
         # Initialize the metaquest2
         device = Meta_quest2()
-        arm_init_pose = np.asarray(arm.get_position()[1])
-        arm_init_pose_ = Rotation.from_euler('xyz', [arm_init_pose[3], arm_init_pose[4], arm_init_pose[5]], degrees=True)
+        arm_init_pose = np.asarray(arm.get_position_aa(is_radian=True)[1])
+        arm_init_pose_ = Rotation.from_rotvec([arm_init_pose[3], arm_init_pose[4], arm_init_pose[5]], degrees=False)
         arm_init_pose_mat = np.eye(4)
         arm_init_pose_mat[:3, :3] = arm_init_pose_.as_matrix()
         arm_init_pose_mat[:3,  3] = arm_init_pose[:3]
@@ -181,7 +181,7 @@ class UfactoryDataCollection():
                     raise Exception(f"Failed to get FT sensor data: {code}")
 
             # save states
-            ee_state = arm.get_position()[1]
+            ee_state = arm.get_position_aa(is_radian=True)[1] # axis angles
             joint_state = arm.get_servo_angle()[1] if hasattr(arm, "get_servo_angle") else [0]*6
     
             self.obs_action_data["ee_states"].append(ee_state)
@@ -226,7 +226,8 @@ class UfactoryDataCollection():
             # perform the action
             action = action[:6]  # only take the first 6 elements for xarm
             print(f"Action: {action}, Grasp: {action_grasp}")
-            arm.set_servo_cartesian(action, speed=20, mvacc=200) # action, is absolute pose list [x, y, z, roll, pitch, yaw] Eular angles in degrees
+            # import pdb; pdb.set_trace()
+            arm.set_servo_cartesian_aa(action, speed=20, mvacc=200, is_radian=True) # action, is absolute pose list [x, y, z, rx, ry, rz] axis angles in radian
 
             self.obs_action_data["action_grasp"].append(action_grasp)
             self.obs_action_data["action"].append(action)
