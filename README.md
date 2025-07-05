@@ -56,55 +56,32 @@ For Ufactory XArm6 (default):
  python scripts/reset_robot_cartesian.py
 ```
 
-For other robots (i.e. Ufactory lite6)
-
-```bash
-# Reset robot joints to zero position
-python scripts/reset_robot_joints.py  --robot lite6 --ip 192.168.1.193
-# Reset robot Cartesian pose to zero position
-python scripts/reset_robot_cartesian.py  --robot lite6 --ip 192.168.1.193
-```
-
 ### 4.2 Open cameras needed, such as
 
 ```bash
+# check cameras path
+v4l2-ctl --list-devices
 # GoPro example
-python scripts/camera_node.py --camera-ref gopro_0 --use-rgb --visualization --img-h 720 --img-w 1280 --fps 30 --publish-freq 50 --camera-address '/dev/video6'
+python scripts/camera_node.py --camera-ref gopro_0 --use-rgb --visualization --img-h 720 --img-w 1280 --fps 30 --camera-address '/dev/video6'
 # Webcam example
-python scripts/camera_node.py --camera-ref webcam_2 --use-rgb --visualization --img-h 1080 --img-w 1920 --fps 30 --publish-freq 50 --camera-address '/dev/video2'
+python scripts/camera_node.py --camera-ref webcam_0 --use-rgb --visualization --img-h 1080 --img-w 1920 --fps 30 --camera-address '/dev/video6'
 # RealSense camera example
-python scripts/camera_node.py --camera-ref rs_1 --use-rgb  --visualization --img-h 480 --img-w 640 --fps 30 --publish-freq 50
+python scripts/camera_node.py --camera-ref rs_1 --use-rgb  --visualization --img-h 480 --img-w 640 --fps 30
 ```
 ** if you want to use RGB and depth data from RealSense camera, you can run the following command:**
 
 ```bash
 # RealSense camera example with RGB and depth
-python scripts/camera_node.py --camera-ref rs_1 --use-rgb --use-depth --visualization --img-h 480 --img-w 640 --fps 30 --publish-freq 50
-```
-
-if you want to check the cameras plugged,
-
-```bash
-# List all video devices
-v4l2-ctl --list-devices
+python scripts/camera_node.py --camera-ref rs_1 --use-rgb --use-depth --visualization --img-h 480 --img-w 640 --fps 30
 ```
 
 Node processes can be cleaned up by running `pkill -9 -f scripts/camera_node.py`.
 
 ### 4.3 Start collecting
 
-For Ufactory XArm6 (default):
-
 ```bash
 # Start collecting data with Meta Quest 2
 python scripts/data_collection_metaquest.py
-```
-
-For other robots (i.e. Ufactory lite6)
-
-```bash
-# Start collecting data with Meta Quest 2
-python scripts/data_collection_metaquest.py --robot lite6 --ip 192.168.1.193
 ```
 
 ## 5. Data format
@@ -113,27 +90,25 @@ Collected data is stored in the `demos_collected` folder, with each run in a sep
 
 ### 5.1 Folder Structure
 
-```
+``` yaml
 demos_collected/
 ├── run001/
-│   ├── config.json                    # Configuration file
-│   ├── demo_action.npz               # Action sequence data
-│   ├── demo_ee_states.npz            # End effector states
-│   ├── demo_target_pose_mat.npz      # Target pose matrix
-│   ├── demo_joint_states.npz         # Joint states
-│   ├── demo_gripper_states.npz       # Gripper states
-│   ├── demo_action_hot.npz           # Action hotkey states
-│   └── demo_camera_1.npz             # Camera data index
+│   ├── config.json                    # Configuration for this run (controller type, observation config, etc.)
+│   ├── demo_action.npz                # Action sequence: [x, y, z, roll, pitch, yaw, grasp] per step
+│   ├── demo_ee_states.npz             # End-effector states per step
+│   ├── demo_joint_states.npz          # Joint states per step
+│   ├── demo_gripper_states.npz        # Gripper (open/close) states per step
+│   ├── demo_action_hot.npz            # Action hotkey/flag per step
+│   ├── demo_FT_raw.npz                # (Optional) Raw force/torque sensor data per step
+│   ├── demo_FT_processed.npz          # (Optional) Processed force/torque sensor data per step
+│   ├── demo_camera_{camera_id}.npz    # Camera image info and metadata per camera
+│   └── ...                            # (No image files here by default)
 ├── run002/
-│   ├── config.json
-│   ├── demo_*.npz
-│   └── demo_camera_1.npz
+│   ├── ...
 └── images/
-    └── rs_rs_1_<timestamp>/
-        ├── color_000000001.jpg        # run001: i.e. Image 1-50
+    └── {camera_type}_{camera_name}_{timestamp}/
+        ├── color_000000001.jpg        # Actual image files (if save2memory_first is enabled)
         ├── color_000000002.jpg
-        ├── ...
-        ├── color_000000051.jpg        # run002: i.e. Image 51-120
         └── ...
 ```                                                                                                                                                                                                               
 

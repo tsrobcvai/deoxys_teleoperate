@@ -11,7 +11,7 @@ import numpy as np
 import redis
 from easydict import EasyDict
 
-from cam_base.camera_redis_interface import CameraRedisPubInterface
+from io_devices.camera_redis_interface import CameraRedisPubInterface
 
 def main():
     parser = argparse.ArgumentParser()
@@ -230,7 +230,7 @@ def main():
                     display_img = imgs["color"]
                     if args.rgb_convention == "rgb":
                         display_img = cv2.cvtColor(display_img, cv2.COLOR_RGB2BGR)
-                    # Resize for display
+                  
                     scale = 0.25  # half size
                     h, w = display_img.shape[:2]
                     new_size = (int(w*scale), int(h*scale))
@@ -244,6 +244,7 @@ def main():
                 if cv2.waitKey(10) & 0xFF == ord('q'):
                     break
 
+            # Control publish frequency
             # Control publish frequency
             # end_time = time.time_ns()
             # time_interval = (end_time - start_time) / (10 ** 9)

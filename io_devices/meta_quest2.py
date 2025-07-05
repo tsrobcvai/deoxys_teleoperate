@@ -3,10 +3,10 @@ import threading
 import numpy as np
 from io_devices.oculus_reader.oculus_reader.reader import OculusReader
 
-class Meta_quest2:
+class Meta_quest2: 
     def __init__(
         self,
-        right_controller: bool = True,
+        right_controller: bool = True, 
         # pos_action_gain: float = 100, # 150
         # rot_action_gain: float = 25, # 5
         # gripper_action_gain: float = 3,
@@ -19,7 +19,7 @@ class Meta_quest2:
 
         self._enabled = False
         self._stop_thread = False  # Flag to control the thread
-
+        
         self._state = {
             "init_pose": None,
             "last_pose": None,
@@ -27,19 +27,19 @@ class Meta_quest2:
             "movement_enabled": False,
             "controller_on": True,
         }
-        self._robot_init_ee = None
-        self._stop_record = False
-        self._origin_controller_pose = {}
+        self._robot_init_ee = None # robot's initial end-effector pose
+        self._stop_record = False  # flag to stop recording data
+        self._origin_controller_pose = {} # initial controller pose
 
         # delta_poses we will conduct
         self.delta_pos = np.array([0.0, 0.0, 0.0])
         self.delta_axis_angle = np.array([0.0, 0.0, 0.0])
 
-        self.thread = threading.Thread(target=self._update_internal_state)
-        self.thread.daemon = True
+        self.thread = threading.Thread(target=self._update_internal_state) # Create a thread for internal state updates
+        self.thread.daemon = True # Daemon thread will exit when the main program exits
         self.thread.start()
 
-
+    # Method to start the controller and begin reading data
     def start_control(self, init_ee_pose):
         """
         Method that should be called externally before controller can
@@ -47,14 +47,14 @@ class Meta_quest2:
         """
         self._robot_init_ee = init_ee_pose
         self._enabled = True
-
+    # Method to stop the controller and clean up resources
     def stop_control(self):
         """Stop the internal thread cleanly."""
         self._enabled = False
         self._stop_thread = True
         self.thread.join()  # Wait for the thread to finish
         # print("Thread has fully exited.")
-
+    # Method to reset the controller state
     def _update_internal_state(self, hz=100):
         
         last_read_time = time.time()
@@ -82,7 +82,7 @@ class Meta_quest2:
                 self._state["last_pose"] = curr_pose
                 self._state["buttons"] = buttons
                 # print("1")
-
+    # Method to get the current state of the controller
     def get_controller_state(self):
         # meta quest default unit m, xarm: mm
         # print(self._state["last_pose"][:3, 3])
@@ -103,7 +103,7 @@ class Meta_quest2:
         return {
             "target_pose": target_pose,
             "grasp": self._state["buttons"]["RTr"],
-            "stop": self._state["buttons"]["A"],
+            "over": self._state["buttons"]["A"],
             "action_hot": self._state["buttons"]["RG"], # TODO: name RG RJ RThu  rightJS rightTrig  rightGrip
-            "over": self._stop_record,
+            "stop": self._stop_record,
         }

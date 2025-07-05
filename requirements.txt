@@ -6,3 +6,4 @@ pyyaml
 redis
 easydict
 hydra-core
+omegaconf==2.3.0
