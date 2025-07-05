@@ -11,13 +11,13 @@ from scipy.spatial.transform import Rotation
 from pathlib import Path
 import multiprocessing
 from xarm.x3.code import APIState
-import hydra # for configuration management
+import hydra
 from omegaconf import DictConfig
 from cam_base.camera_redis_interface import CameraRedisSubInterface
 from utils import YamlConfig
 from xarm.wrapper import XArmAPI
 
-# Function to convert input from the device to an action for the robot arm 
+# Function to convert input from the device to an action for the robot arm
 def input2action(device, controller_type="cartsian_servo_position"):
     state = device.get_controller_state()
     assert state, "please check your headset if works on debug mode correctly"
@@ -26,21 +26,19 @@ def input2action(device, controller_type="cartsian_servo_position"):
     target_pose_mat, grasp, stop, action_hot, over  = state["target_pose"], state["grasp"], state["stop"], state["action_hot"], state["over"]
 
     # Get target position and rotation
-    target_pos = target_pose_mat[:3, 3:]   # Get the target position (x y z) translation vector (4th column, first 3 rows)
-    action_pos = target_pos.flatten() * 1  # Flatten and scale the position vector
+    target_pos = target_pose_mat[:3, 3:]
+    action_pos = target_pos.flatten() * 1
 
-    # Get target rotation
-    target_rot = target_pose_mat[:3, :3]   # Get the target rotation (R) (3 × 3) (first 3 rows, first 3 columns
-    target_rot_mat = Rotation.from_matrix(target_rot) # Convert rotation matrix to a Rotation object
-
+    # Get target rotation   
+    target_rot = target_pose_mat[:3, :3]   # @ reset_coord_mat[:3,:3] # Reset coordiate
+    target_rot_mat = Rotation.from_matrix(target_rot)
     # Convert rotation to Euler angles for xarm ufactory 
-    euler_angle = target_rot_mat.as_euler('xyz', degrees=True)  # Convert to Euler angles in degrees
-    action_euler_angle = euler_angle.flatten() * 1  # Flatten and scale the rotation vector
+    euler_angle = target_rot_mat.as_euler('xyz', degrees=True)
+    action_euler_angle = euler_angle.flatten() * 1
 
-    # Prepare the action based on the controller type
     if controller_type == "cartsian_servo_position":
-        grasp_val = 1 if grasp else -1 # 1 for grasp, -1 for release
-        action = action_pos.tolist() + action_euler_angle.tolist() + [grasp_val]  
+        grasp_val = 1 if grasp else -1
+        action = action_pos.tolist() + action_euler_angle.tolist() + [grasp_val] 
     else:
         raise NotImplementedError(f"Controller type {controller_type} is not implemented")
 
@@ -48,7 +46,7 @@ def input2action(device, controller_type="cartsian_servo_position"):
     return action, grasp_val, action_hot, stop, over
 
 
-# Safety control function to ensure the target action is within the robot's operational limits
+# # Safety control function to ensure the target action is within the robot's operational limits
 # def safety_control(target_action, robot_type="xarm6"):
 #     # unit mm
 #     if robot_type == "lite6":
@@ -84,7 +82,6 @@ class UfactoryDataCollection():
         self.robot_type = robot_type
         self.folder = Path(folder)
         self.controller_type = controller_type
-        # Load the observation configuration
         self.observation_cfg = observation_cfg
         self.camera_ids = observation_cfg["camera_ids"]
         self.camera_names = observation_cfg["camera_names"]
@@ -92,8 +89,8 @@ class UfactoryDataCollection():
         self.control_frequency = control_frequency
         self.FT_option = FT_option
         self.cam_necessary = cam_necessary
-        self.folder.mkdir(parents=True, exist_ok=True)
 
+        self.folder.mkdir(parents=True, exist_ok=True)
         # logging config
         logging.basicConfig(level=logging.INFO)
         self.logger = logging.getLogger("UfactoryDataCollection")
@@ -112,8 +109,8 @@ class UfactoryDataCollection():
             "FT_processed": [],
         }
  
-
     def collect_data(self, ip):
+
         # Initialize camera interfaces
         if self.cam_necessary:
             cam_interfaces = {}
@@ -128,15 +125,15 @@ class UfactoryDataCollection():
         arm = XArmAPI(ip)
         arm.motion_enable(enable=True)
         arm.set_mode(1)
-        arm.set_state(0)
-
+        arm.set_state(0)\
+        
         # Initialize the FT sensor
         if self.FT_option:
-            arm.ft_sensor_enable(1) 
-            arm.ft_sensor_set_zero() 
-            time.sleep(0.2) 
+            arm.ft_sensor_enable(1)
+            arm.ft_sensor_set_zero()
+            time.sleep(0.2)
             arm.ft_sensor_app_set(1)
-            arm.set_state(0) 
+            arm.set_state(0)
         time.sleep(0.5)
 
         # Initialize the metaquest2
@@ -174,8 +171,7 @@ class UfactoryDataCollection():
                         if not success:
                             print(f"Failed to save image for camera {camera_id}")
                     self.obs_action_data[f"camera_{camera_id}"].append(img_info)
-            
-            # if the F/T sensor is enabled, get the FT sensor data
+
             if self.FT_option:
                 code, _ = arm.get_ft_sensor_data()
                 if code == 0:
@@ -184,10 +180,10 @@ class UfactoryDataCollection():
                 else:
                     raise Exception(f"Failed to get FT sensor data: {code}")
 
-            # save states 
+            # save states
             ee_state = arm.get_position()[1]
             joint_state = arm.get_servo_angle()[1] if hasattr(arm, "get_servo_angle") else [0]*6
-            
+    
             self.obs_action_data["ee_states"].append(ee_state)
             self.obs_action_data["joint_states"].append(joint_state)
             self.obs_action_data["gripper_states"].append(gripper_state)
@@ -196,7 +192,7 @@ class UfactoryDataCollection():
             action, action_grasp, action_hot, stop_collection, over = input2action(device=device)
             gripper_state = action_grasp # 1 for grasp, 0 for release
             
-            # grasp control
+            # import pdb;pdb.set_trace()
             if action_grasp == 1:
                 code, ret = arm.robotiq_close(wait=False)
             elif action_grasp == -1:
@@ -216,7 +212,6 @@ class UfactoryDataCollection():
             #     self.save(keep=True, keyboard_ask=True)
             #     break
 
-            # if stop_collection:
             if over:
                 device.stop_control()
                 del device
@@ -227,7 +222,7 @@ class UfactoryDataCollection():
             #     device.stop_control()
             #     print("The ee location is beyond the predefined safety range")
             #     break
-            
+
             # perform the action
             action = action[:6]  # only take the first 6 elements for xarm
             print(f"Action: {action}, Grasp: {action_grasp}")

@@ -27,8 +27,8 @@ def main(robot: str = "xarm6",
     #     return
 
     # switch to position control (mode 0) and move
-    arm.set_mode(0)   
-    arm.set_state(0)  
+    arm.set_mode(0)
+    arm.set_state(0)
     time.sleep(0.5)
 
     print(f"Moving to pose: {pose} (units: mm, deg)")
@@ -42,8 +42,10 @@ def main(robot: str = "xarm6",
 # We will get in to the manual mode first, after the user confirms, we will switch to position control mode
 # ==========================================================================
 if __name__ == "__main__":
-    ROBOT = "xarm6"                            # "xarm6" | "lite6" | "uf850"
+    ROBOT = "xarm6"                 # "xarm6" | "lite6" | "uf850"
     IP    = "192.168.1.235"                    # None → use default for ROBOT
-    POSE  = [481, 48.4, 350, -180, -2, 3.6]    # None → use robot’s default pose
+    POSE  = [481, 48.4, 350, -180, -2, 3.6]                   # None → use robot’s default pose
+
     # POSE example: [300, 50, 350, -180, 0, 0]
+
     main(robot=ROBOT, ip=IP, pose=POSE)
