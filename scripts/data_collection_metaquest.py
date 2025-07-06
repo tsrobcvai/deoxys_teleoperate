@@ -192,6 +192,7 @@ class UfactoryDataCollection():
             action, action_grasp, action_hot, stop_collection, over = input2action(device=device)
             gripper_state = action_grasp # 1 for grasp, 0 for release
             
+            
             # import pdb;pdb.set_trace()
             if action_grasp == 1:
                 code, ret = arm.robotiq_close(wait=False)
@@ -288,10 +289,11 @@ class UfactoryDataCollection():
             data = self.obs_action_data
             print("Total length of the trajectory: ", len(data["action"]))
 
-            np.savez(f"{self.tmp_folder}/demo_action", data=np.array(data["action"]))
-            np.savez(f"{self.tmp_folder}/demo_ee_states", data=np.array(data["ee_states"]))
+            np.savez(f"{self.tmp_folder}/demo_ee_states", data=np.array(data["ee_states"])) 
             np.savez(f"{self.tmp_folder}/demo_joint_states", data=np.array(data["joint_states"]))
             np.savez(f"{self.tmp_folder}/demo_gripper_states", data=np.array(data["gripper_states"]))
+            np.savez(f"{self.tmp_folder}/demo_action", data=np.array(data["action"]))
+            np.savez(f"{self.tmp_folder}/demo_action_grasp", data=np.array(data["action_grasp"]))
             np.savez(f"{self.tmp_folder}/demo_action_hot", data=np.array(data["action_hot"]))
 
             if self.FT_option:
