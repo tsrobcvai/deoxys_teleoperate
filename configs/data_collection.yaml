@@ -1,5 +1,4 @@
 # Data Collection Configuration
-
 dataset_name: "demos_collected"
 obs_cfg: "configs/real_robot_observation_cfg.yml"
 robot: "xarm6"
@@ -10,3 +9,4 @@ control_frequency: 50
 save2memory_first: true
 FT_option: true
 cam_necessary: true
+demo_save_frequency: 10

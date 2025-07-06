@@ -78,6 +78,7 @@ class UfactoryDataCollection():
                  control_frequency=50,
                  FT_option=True,
                  cam_necessary=True,
+                 demo_save_frequency=10,
                  ):
         self.robot_type = robot_type
         self.folder = Path(folder)
@@ -89,6 +90,7 @@ class UfactoryDataCollection():
         self.control_frequency = control_frequency
         self.FT_option = FT_option
         self.cam_necessary = cam_necessary
+        self.demo_save_frequency = demo_save_frequency
 
         self.folder.mkdir(parents=True, exist_ok=True)
         # logging config
@@ -158,43 +160,46 @@ class UfactoryDataCollection():
             #     break
             # start = True
 
-            # Load the observation data into CPU memory
-            for camera_id in self.camera_ids:
-                img_info = cam_interfaces[camera_id].get_img_info()
-                imgs_array = cam_interfaces[camera_id].get_img()
-                if cam_interfaces[camera_id].use_color:
-                    img_bgr = cv2.cvtColor(imgs_array["color"], cv2.COLOR_RGB2BGR)
-                    if self.save2memory_first:
-                        img_info["color_image_data"] = img_bgr
+            if i % (self.control_frequency % self.demo_save_frequency) == 0:
+                # Load the observation data into CPU memory
+                for camera_id in self.camera_ids:
+                    img_info = cam_interfaces[camera_id].get_img_info()
+                    imgs_array = cam_interfaces[camera_id].get_img()
+                    if cam_interfaces[camera_id].use_color:
+                        img_bgr = cv2.cvtColor(imgs_array["color"], cv2.COLOR_RGB2BGR)
+                        if self.save2memory_first:
+                            # saving images into memory first
+                            img_info["color_image_data"] = img_bgr
+                        else:
+                            success = cv2.imwrite(img_info["color_img_name"] + ".jpg", img_bgr)
+                            if not success:
+                                print(f"Failed to save image for camera {camera_id}")
+                        self.obs_action_data[f"camera_{camera_id}"].append(img_info)
+
+                if self.FT_option:
+                    code, _ = arm.get_ft_sensor_data()
+                    if code == 0:
+                        self.obs_action_data["FT_raw"].append(arm.ft_raw_force)
+                        self.obs_action_data["FT_processed"].append(arm.ft_ext_force)
                     else:
-                        success = cv2.imwrite(img_info["color_img_name"] + ".jpg", img_bgr)
-                        if not success:
-                            print(f"Failed to save image for camera {camera_id}")
-                    self.obs_action_data[f"camera_{camera_id}"].append(img_info)
+                        raise Exception(f"Failed to get FT sensor data: {code}")
 
-            if self.FT_option:
-                code, _ = arm.get_ft_sensor_data()
-                if code == 0:
-                    self.obs_action_data["FT_raw"].append(arm.ft_raw_force)
-                    self.obs_action_data["FT_processed"].append(arm.ft_ext_force)
-                else:
-                    raise Exception(f"Failed to get FT sensor data: {code}")
-
-            # save states
-            ee_state = arm.get_position_aa(is_radian=True)[1] # axis angles
-            joint_state = arm.get_servo_angle()[1] if hasattr(arm, "get_servo_angle") else [0]*6
-    
-            self.obs_action_data["ee_states"].append(ee_state)
-            self.obs_action_data["joint_states"].append(joint_state)
-            self.obs_action_data["gripper_states"].append(gripper_state)
+                # save states
+                ee_state = arm.get_position_aa(is_radian=True)[1] # axis angles
+                joint_state = arm.get_servo_angle()[1] if hasattr(arm, "get_servo_angle") else [0]*6
+        
+                self.obs_action_data["ee_states"].append(ee_state)
+                self.obs_action_data["joint_states"].append(joint_state)
+                self.obs_action_data["gripper_states"].append(gripper_state)
 
             # read action from the device
             action, action_grasp, action_hot, stop_collection, over = input2action(device=device)
             gripper_state = action_grasp # 1 for grasp, 0 for release
-            
-            self.obs_action_data["action_grasp"].append(action_grasp)
-            self.obs_action_data["action"].append(action)
-            self.obs_action_data["action_hot"].append(action_hot)# delta action is the difference between the target action and the current end-effector state
+
+            if i % (self.control_frequency % self.demo_save_frequency) == 0:
+                self.obs_action_data["action_grasp"].append(action_grasp)
+                self.obs_action_data["action"].append(action)
+                self.obs_action_data["action_hot"].append(action_hot)# delta action is the difference between the target action and the current end-effector state
 
             # import pdb;pdb.set_trace()
             if action_grasp == 1:
@@ -286,6 +291,7 @@ class UfactoryDataCollection():
 
         else:
             data = self.obs_action_data
+            print("Demo downsmapling frequencey: ", self.demo_save_frequency)
             print("Total length of the trajectory: ", len(data["action"]))
 
             np.savez(f"{self.tmp_folder}/demo_ee_states", data=np.array(data["ee_states"])) 
@@ -299,9 +305,6 @@ class UfactoryDataCollection():
                 np.savez(f"{self.tmp_folder}/demo_FT_raw", data=np.array(data["FT_raw"]))
                 np.savez(f"{self.tmp_folder}/demo_FT_processed", data=np.array(data["FT_processed"]))
 
-            for camera_id in self.camera_ids:
-                np.savez(f"{self.tmp_folder}/demo_camera_{camera_id}", data=np.array(data[f"camera_{camera_id}"]))
-
             if self.save2memory_first:
                 print("------------- Saving images... -------------")
                 for camera_id in self.camera_ids:
@@ -312,7 +315,8 @@ class UfactoryDataCollection():
                                 print("failed saving imgs")
                             del img_info["color_image_data"]
 
-        # self.tmp_folder = None
+            for camera_id in self.camera_ids:
+                np.savez(f"{self.tmp_folder}/demo_camera_{camera_id}", data=np.array(data[f"camera_{camera_id}"]))
 
 @hydra.main(version_base=None, config_path="../configs", config_name="data_collection")
 def main(cfg: DictConfig):
@@ -327,6 +331,7 @@ def main(cfg: DictConfig):
         control_frequency=cfg.control_frequency,
         FT_option=cfg.FT_option,
         cam_necessary=cfg.cam_necessary,
+        demo_save_frequency = cfg.demo_save_frequency,
     )
     data_collection.collect_data(ip=cfg.ip)
     data_collection.save(keep=True, keyboard_ask=True)
