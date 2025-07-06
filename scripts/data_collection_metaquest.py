@@ -192,7 +192,10 @@ class UfactoryDataCollection():
             action, action_grasp, action_hot, stop_collection, over = input2action(device=device)
             gripper_state = action_grasp # 1 for grasp, 0 for release
             
-            
+            self.obs_action_data["action_grasp"].append(action_grasp)
+            self.obs_action_data["action"].append(action)
+            self.obs_action_data["action_hot"].append(action_hot)# delta action is the difference between the target action and the current end-effector state
+
             # import pdb;pdb.set_trace()
             if action_grasp == 1:
                 code, ret = arm.robotiq_close(wait=False)
@@ -229,10 +232,6 @@ class UfactoryDataCollection():
             print(f"Action: {action}, Grasp: {action_grasp}")
             # import pdb; pdb.set_trace()
             arm.set_servo_cartesian_aa(action, speed=20, mvacc=200, is_radian=True) # action, is absolute pose list [x, y, z, rx, ry, rz] axis angles in radian
-
-            self.obs_action_data["action_grasp"].append(action_grasp)
-            self.obs_action_data["action"].append(action)
-            self.obs_action_data["action_hot"].append(action_hot)# delta action is the difference between the target action and the current end-effector state
 
             # control frequency control
             elapsed_time = (time.time_ns() - start_time) / 1e9
